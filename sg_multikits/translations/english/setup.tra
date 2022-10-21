@@ -1,0 +1,39 @@
+////////////////////////////////////////////////////////////////////////////////
+//                                                                            //
+//  NOTE FOR TRANSLATORS: do not translate anything between angle brackets,   //
+//  such as <SCRIPTNAME> and <NUM>, nor anything between percentage symbols,  //
+//  such as %kit_name% and %SOURCE_FILE%, and please, ignore the last two     //
+//  lines (translation is not needed)                                         //
+//                                                                            //
+////////////////////////////////////////////////////////////////////////////////
+@100 = ~INSTALL/UNINSTALL MULTIKITS~
+@101 = ~this component standardizes backstabs to use clabs. It also is used so you can uninstall all multikits.~
+@1000 = ~Multiclass Multikit Builder and Installer~
+@10001 = ~Error: game not available.~
+@1002 = ~This component allows you to create multikits; 
+it cannot be uninstalled, but can be installed multiple times. 
+Each time you install this component, you can create as many multikits as you elect to; 
+the multikits will be installed. See the readme for further instructions.
+
+All told, you should probably not install more than 200 multikits at the same time.
+
+NOTE: THIS COMPONENT INSTALLS THE MULTIKITS.~
+@1003 = ~Multikit created; <NUM> multikits to go.~
+
+
+@1010 = ~Building Multikit...~
+@1011 = ~Enter integer corresponding to type of multiclass:~
+
+@1020 = ~Choose class~
+
+@1021 = ~You can't multi-class into yourself!~
+@1022 = ~Not yet implemented, sorry.~
+@1023 = ~Building multikit from default class <CLASS>-<CLASS>~
+@1024 = ~Building multikit class for <CLASS>-<CLASS> based on FIGHTER-MAGE.~
+@1025 = ~Building multikit class for <CLASS>-<CLASS> based on FIGHTER-CLERIC.~
+@1026 = ~Building multikit class for <CLASS>-<CLASS> based on CLERIC-MAGE.~
+@1027 = ~Building multikit class for <CLASS>-<CLASS> based on CLERIC-THIEF.~
+@1028 = ~Building multikit class for <CLASS>-<CLASS> based on THIEF-MAGE.~
+@1029 = ~Building multikit class for <CLASS>-<CLASS> based on FIGHTER-THIEF.~
+
+@2000 = ~Multiclass Multikit Uninstaller: Uninstall all kits~

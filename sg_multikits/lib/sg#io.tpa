@@ -1,0 +1,316 @@
+ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST// ASSOCIATIONS: column-label, is_transposed,
+BEGIN //prompt, one two, loosen, restrict, sum, random, SMART, SKIP
+  ~clastext~    => "0 0 0"//class strings
+  ~kitlist~     => "1 0 0"//kit   strings
+  ~kittable~    => "0 0 0"//kit races
+  ~clasweap~    => "0 0 0"//(old) weapon proficiencies
+  ~weapprof~    => "1 1 0"//weapon proficiencies
+  ~abclsmod~    => "0 0 3"//kit roll modifiers
+  ~abclasrq~    => "0 0 3"//kit roll requirements
+  ~alignmnt~    => "0 0 4"//kit alignments
+  ~backstab~    => "0 0 3"//kit backstab
+  ~sneakatt~    => "0 0 3"//kit sneak attack     (3e)
+  ~crippstr~    => "0 0 3"//kit crippling strike (3e)
+  ~thiefskl~    => "0 0 5"//kit thief skills available
+  ~thiefscl~    => "0 1 3"//kit thief skills per level (COLUMN-WISE)
+  ~clsrcreq~    => "0 0 4"//kit racial requirements
+  ~clascolr~    => "0 1 6"//kit colours (COLUMN-WISE)
+  ~clasiskl~    => "0 1 5"//kit starting scores (COLUMN-WISE)
+  ~clasthac~    => "0 1 5"//kit thaco bonus (COLUMN-WISE)
+  ~clswpbon~    => "0 0 3"//kit weapon bonuses (APR, UNARMED APR, UNPROFICIENT THAC0)
+END
+DEFINE_ACTION_FUNCTION backup_2da
+BEGIN
+ACTION_PHP_EACH "2DALIST" AS "2DA" => "OPTIONS" BEGIN
+  COPY_EXISTING "%2DA%.2da" ~override~
+    PATCH_PRINT "BACKED UP %2DA%.2DA"
+END
+
+END
+DEFINE_PATCH_FUNCTION read_2da_header_now
+  RET_ARRAY
+    output
+  BEGIN
+    SET numlines = 0
+    SET curroffset = 0
+    SPRINT currline ""
+    WHILE (numlines < 3) BEGIN
+      READ_BYTE  curroffset currbyte
+      READ_ASCII curroffset currstr ( 1 )
+      SET curroffset += 1
+      SPRINTF currline EVAL "%currline%%s" ("%currstr%")
+      PATCH_IF (currbyte == 0x0a) BEGIN
+        SET numlines += 1
+        SPRINT newline "%currline%"
+        SPRINT currline ""
+      END
+    END
+    // send to an ass-array
+    PATCH_DEFINE_ASSOCIATIVE_ARRAY output BEGIN END
+    SET curroffset = 0
+    SET numwords = 0
+    SPRINT currword ""
+    SET strlen = STRING_LENGTH "%newline%"
+    INNER_PATCH "%newline%" BEGIN
+      READ_ASCII curroffset laststr ELSE ~~ ( 1 )
+      READ_BYTE  curroffset lastbyte ELSE 0x20
+      SET curroffset += 1
+      FOR (i=0;i < "%strlen%";i += 1) BEGIN
+        READ_ASCII i currstr  ELSE ~~ ( 1 ) NULL
+        READ_BYTE  i currbyte ELSE 0x20
+
+        PATCH_IF (currbyte != 0x20  AND (i != "%strlen%" - 1)) BEGIN // if not a space, append.
+          SPRINTF currword EVAL "%currword%%s" ("%currstr%")
+        END
+        //if a space, check if last was a chr.
+        PATCH_IF (lastbyte != 0x20) AND ((currbyte == 0x20) OR (i == "%strlen%" - 1)) BEGIN
+          SET numwords += 1
+          SET $output("%currword%") = "%numwords%" //append word
+
+          //PATCH_PRINT "%currword%"
+          SPRINT currword "" //reset word
+        END
+        SET lastbyte = "%currbyte%"
+        SPRINT laststr "%currstr%"
+      END
+    END
+END
+
+
+DEFINE_ACTION_FUNCTION 2da_to_asarray
+  INT_VAR name_col = 0
+  STR_VAR filename = ~~
+          fileto = ~override~
+  RET_ARRAY
+    rows
+    cols
+    outtable2
+    nrows
+    ncols
+  BEGIN
+    ACTION_DEFINE_ASSOCIATIVE_ARRAY "rows" BEGIN END
+    ACTION_DEFINE_ASSOCIATIVE_ARRAY "cols" BEGIN END
+    ACTION_DEFINE_ARRAY "outtable2" BEGIN END
+    COPY_EXISTING "%filename%" "%fileto%"
+
+      COUNT_2DA_COLS "ncols"
+      READ_2DA_ENTRIES_NOW "outtable" "%ncols%"
+      SET nrows = "%outtable%"
+      // dumb but weidu is weidu I guess
+      FOR (row=0; row < "%nrows%"; row += 1) BEGIN
+        FOR (col=0; col < "%ncols%"; col += 1) BEGIN
+          READ_2DA_ENTRY_FORMER "outtable" "%row%" "%col%" tmp
+          SPRINT $outtable2("%row%" "%col%") "%tmp%"
+        END
+      END
+      LPF read_2da_header_now RET_ARRAY "cols" = output END
+
+      FOR (row = 0; row < "%nrows%"; row += 1) BEGIN
+        SPRINT "name" $outtable2("%row%" "%name_col%")
+        SET $"rows"("%name%") = row
+      END
+
+      BUT_ONLY
+
+END
+
+
+
+DEFINE_ACTION_MACRO GET_2DAS
+BEGIN
+  //override 2das:
+  
+
+  ACTION_PHP_EACH "2DALIST" AS "2da" => "col_id" BEGIN
+    
+    LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%col_id%" RET "col_id" = substring END
+    LAF 2da_to_asarray
+      INT_VAR name_col = EVAL "%col_id%"
+      STR_VAR filename = ~%2da%.2da~
+      RET_ARRAY ~%2da%_rows~ = rows
+                ~%2da%_cols~ = cols
+                ~%2da%~ = outtable2
+    END
+
+  END
+
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST_MOD
+  BEGIN
+    ~multi_grid~ => "0 0"
+  END
+
+  ACTION_PHP_EACH "2DALIST_MOD" AS "2da" => "col_id" BEGIN
+    LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%col_id%" RET "col_id" = substring END
+    LAF 2da_to_asarray
+      INT_VAR name_col = EVAL "%col_id%"
+      STR_VAR filename = ~%MOD_FOLDER%/lib/%2da%.2da~
+              fileto = ~~
+      RET_ARRAY ~%2da%_rows~ = rows
+                ~%2da%_cols~ = cols
+                ~%2da%~ = outtable2
+    END
+  END
+
+END
+
+
+DEFINE_ACTION_FUNCTION merge_2da
+INT_VAR
+  column = 0
+  restrict12 = 0
+  restrict23 = 0
+STR_VAR
+  filename = ~~
+  merge1   = ~~
+  merge2   = ~~
+  merge3   = ~~
+RET output
+    restrict12
+    restrict23
+BEGIN
+
+  ACTION_IF (restrict12 == 0) BEGIN
+    PRINT "How would you like to merge %filename% for %merge1% and %merge2%?
+[1] First  class priority (%merge1%, Kensai-Mage, Barbarian-Mage, etc.)
+[2] Second class priority (%merge2%)
+[3] Loosen   (like Fighter-Mage weapons)
+[4] Restrict (like Fighter-Cleric weapons)
+[5] Sum
+[6] Randomize
+[7] Smart Selection (EXPERIMENTAL)"
+    LAF prompt_integer
+      INT_VAR min = 1 max = 7
+      RET restrict12 = output
+    END
+  END
+  ACTION_IF (restrict23 == 0 AND FLAG_TRIPLECLASS) BEGIN
+    PRINT "How would you like to merge %filename% for %merge1%-%merge2% and %merge3%?
+[1] First  class priority (%merge1%, Kensai-Mage, Barbarian-Mage, etc.)
+[2] Second class priority (%merge2%)
+[3] Loosen   (like Fighter-Mage weapons)
+[4] Restrict (like Fighter-Cleric weapons)
+[5] Sum
+[6] Randomize
+[7] Smart Selection (EXPERIMENTAL)"
+      LAF prompt_integer
+        INT_VAR min = 1 max = 7
+        RET restrict23 = output
+      END
+  END
+
+  OUTER_SPRINT row1str ""
+  OUTER_SPRINT row2str ""
+  OUTER_SPRINT row3str ""
+  OUTER_SPRINT output ""
+  OUTER_SPRINT idstr ""
+
+  ACTION_IF NOT column BEGIN
+    OUTER_SPRINT myrow "rows"
+    OUTER_SPRINT mycol "cols"
+  END ELSE BEGIN
+    OUTER_SPRINT myrow "cols"
+    OUTER_SPRINT mycol "rows"
+  END
+
+  OUTER_SPRINT rownum1 EVAL "%%filename%_%myrow%_%merge1%%"
+  OUTER_SPRINT rownum2 EVAL "%%filename%_%myrow%_%merge2%%"
+  OUTER_SPRINT rownum3 EVAL "%%filename%_%myrow%_%merge3%%"
+
+  ACTION_PHP_EACH "%filename%_%mycol%" AS "colname" => "colnum" BEGIN
+    ACTION_IF column BEGIN
+      ACTION_IF IS_AN_INT rownum1 BEGIN OUTER_SET row1 = $"%filename%"("%colnum%" "%rownum1%") END ELSE BEGIN OUTER_SET row1 = 0 - 1 END
+      ACTION_IF IS_AN_INT rownum2 BEGIN OUTER_SET row2 = $"%filename%"("%colnum%" "%rownum2%") END ELSE BEGIN OUTER_SET row2 = 0 - 1 END
+      ACTION_IF IS_AN_INT rownum3 BEGIN OUTER_SET row3 = $"%filename%"("%colnum%" "%rownum3%") END ELSE BEGIN OUTER_SET row3 = 0 - 1 END
+    END ELSE BEGIN
+      ACTION_IF IS_AN_INT rownum1 BEGIN OUTER_SET row1 = $"%filename%"("%rownum1%" "%colnum%") END ELSE BEGIN  OUTER_SET row1 = 0 - 1 END
+      ACTION_IF IS_AN_INT rownum2 BEGIN OUTER_SET row2 = $"%filename%"("%rownum2%" "%colnum%") END ELSE BEGIN  OUTER_SET row2 = 0 - 1 END
+      ACTION_IF IS_AN_INT rownum3 BEGIN OUTER_SET row3 = $"%filename%"("%rownum3%" "%colnum%") END ELSE BEGIN  OUTER_SET row3 = 0 - 1 END
+    END
+    LAF merge_item 
+      INT_VAR 
+        mergetype1 = restrict12 
+        mergetype2 = restrict23
+        merge1 = row1 
+        merge2 = row2 
+        merge3 = row3 
+      /*STR_VAR will be used for smart select
+        tablename  = EVAL "%filename%"
+        colname    = EVAL "%colname%"
+        merge1name = EVAL "%merge1%"
+        merge2name = EVAL "%merge2%"
+        merge3name = EVAL "%merge3%"*/
+      RET
+        rowout = output
+    END
+    
+    OUTER_SPRINT row1str "%row1str% %row1%"
+    OUTER_SPRINT row2str "%row2str% %row2%"
+    ACTION_IF FLAG_TRIPLECLASS BEGIN OUTER_SPRINT row3str "%row3str% %row3%" END
+    OUTER_SPRINT idstr   "%idstr% %colname%"
+    OUTER_SPRINT output "%output% %rowout%"
+  END
+  ACTION_IF FLAG_TRIPLECLASS BEGIN
+  PRINT "%filename%:
+%row1str% (%merge1%)
+%row2str% (%merge2%)
+%row3str% (%merge3%)
+%output%"
+  END ELSE BEGIN
+  PRINT "%filename%:
+%row1str% (%merge1%)
+%row2str% (%merge2%)
+%output%"
+  END
+END
+
+DEFINE_ACTION_FUNCTION merge_item 
+  INT_VAR 
+    mergetype1 = 0 
+    mergetype2 = 0
+    merge1 = 0 - 1 
+    merge2 = 0 - 1 
+    merge3 = 0 - 1 
+  STR_VAR 
+    tablename = ""
+    merge1name = ""
+    merge2name = ""
+    merge3name = ""
+  RET
+    output
+BEGIN
+  ACTION_IF (mergetype1 == 6 AND mergetype2 == 6) BEGIN// need to do this one individually to get an even 33% distribution
+    OUTER_SET random3 = RANDOM (0 2)
+    ACTION_MATCH random3
+      WITH
+        0 BEGIN OUTER_SET output = merge1 END
+        1 BEGIN OUTER_SET output = merge2 END
+        2 BEGIN OUTER_SET output = merge3 END
+        DEFAULT
+    END
+  END ELSE BEGIN
+    ACTION_MATCH mergetype1
+      WITH
+        1 BEGIN /* merge1 priority*/ OUTER_SET output = ((merge1 >  0)                  ) ? (merge1 + merge2 + (ABS (merge1 - merge2))) / 2 : 0 END
+        2 BEGIN /* merge2 priority*/ OUTER_SET output = (                  (merge2 >  0)) ? (merge1 + merge2 + (ABS (merge1 - merge2))) / 2 : 0 END
+        3 BEGIN /* loosen like FM */ OUTER_SET output = ((merge1 >  0) OR  (merge2 >  0)) ? (merge1 + merge2 + (ABS (merge1 - merge2))) / 2 : 0 END
+        4 BEGIN /* restrict like C*/ OUTER_SET output = ((merge1 >  0) AND (merge2 >  0)) ? (merge1 + merge2 + (ABS (merge1 - merge2))) / 2 : 0 END
+        5 BEGIN /* sum of c1 & c2 */ OUTER_SET output = ((merge1 >  0) AND (merge2 >  0)) ? (merge1 + merge2) : (merge1 + merge2 + (ABS (merge1 - merge2))) / 2 END
+        6 BEGIN /* randomize      */ OUTER_SET output = RANDOM (0 1) ? merge1 : merge2 END
+        7 BEGIN /* smart select   */ FAIL ~unimplemented: smart select~ END
+      DEFAULT FAIL ~unknown restriction given: mergetype1 = %mergetype1%~
+    END
+    
+    ACTION_IF ((mergetype2 MODULO 7) != 0) BEGIN
+      LAF merge_item 
+        INT_VAR 
+        mergetype1 = mergetype2 
+        merge1 = output 
+        merge2 = merge3 
+        RET 
+        output = output 
+      END
+    END
+  END
+  OUTER_SET output = (output < 0) ? 0 : output
+END
+

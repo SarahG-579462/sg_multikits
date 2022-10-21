@@ -1,0 +1,74 @@
+
+INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa" 
+INCLUDE "%MOD_FOLDER%/lib/sg#io.tpa" 
+
+DEFINE_ACTION_FUNCTION clabify_backstab
+BEGIN
+  LAF 2da_to_asarray
+    INT_VAR name_col = 0
+    STR_VAR filename = ~backstab.2da~
+    RET_ARRAY ~backstab_rows~ = rows
+              ~backstab_cols~ = cols
+              ~backstab~ = outtable2
+  END
+  
+  LAF 2da_to_asarray
+    INT_VAR name_col = 1
+    STR_VAR filename = ~kitlist.2da~
+    RET_ARRAY ~kitlist_rows~ = rows
+              ~kitlist_cols~ = cols
+              ~kitlist~ = outtable2
+  END
+  
+  OUTER_SET thiefrow = $backstab_rows("THIEF")
+  ACTION_PHP_EACH ~backstab_rows~ AS ~class~ => ~row~ BEGIN
+    ACTION_IF NOT (~%class%~ STRING_EQUAL "THIEF") BEGIN
+      OUTER_SPRINT classclab $kitlist(EVAL "%kitlist_rows_%class%%" EVAL "%kitlist_cols_ABILITIES%")
+      OUTER_SET classtype = $kitlist(EVAL "%kitlist_rows_%class%%" EVAL "%kitlist_cols_CLASS%")
+      // THIEF-TYPE:
+      ACTION_IF "%classtype%" == 4 BEGIN //if a thief, modify based on thief table, so multi-thieves work.
+        OUTER_SET currbackstabmod = 0
+        ACTION_PHP_EACH ~backstab_cols~ AS ~level~ => ~col~ BEGIN
+          OUTER_SET currdiff_thief = $backstab(~%row%~ ~%col%~) - $backstab(~%thiefrow%~ ~%col%~)
+          OUTER_WHILE (currdiff_thief > 0) AND (currdiff_thief != currbackstabmod) BEGIN
+          // class has higher backstab, so add some, until the current modifier is correct.
+            OUTER_SET currbackstabmod   += 1
+            COPY_EXISTING ~%classclab%.2da~ ~override~
+              level = (level == 0) ? 1 : level // no level 0 clab.
+              LPF bl_add_ability_to_clab INT_VAR level = ~%level%~ STR_VAR ability = ~AP_SPCL332~ END//+1 BS mod
+            BUT_ONLY
+          END
+          OUTER_WHILE (currdiff_thief < 0) AND (currdiff_thief != currbackstabmod) BEGIN
+          // class has lower backstab, so remove some, until the current modifier is correct.
+            OUTER_SET currbackstabmod   -= 1
+            COPY_EXISTING ~%classclab%.2da~ ~override~
+              level = (level == 0) ? 1 : level // no level 0 clab.
+              LPF bl_add_ability_to_clab INT_VAR level = ~%level%~ STR_VAR ability = ~AP_BLSPBKM~ END//-1 BS mod
+            BUT_ONLY
+          END
+        END
+      END ELSE BEGIN // otherwise, if not a thief, add backstabs, so multi-stalkers work, e.g.
+        OUTER_SET currbackstab = 0
+        ACTION_PHP_EACH ~backstab_cols~ AS ~level~ => ~col~ BEGIN
+          OUTER_SET currdiff_new   = $backstab(~%row%~ ~%col%~) - currbackstab
+          OUTER_WHILE (currdiff_new > 0) BEGIN
+            OUTER_SET currbackstab   += 1
+            OUTER_SET currdiff_new   -= 1
+            COPY_EXISTING ~%classclab%.2da~ ~override~
+              level = (level == 0) ? 1 : level // no level 0 clab.
+              LPF bl_add_ability_to_clab INT_VAR level = ~%level%~ STR_VAR ability = ~AP_SPCL332~ END//+1 BS mod
+            BUT_ONLY
+          END
+        END
+      END
+    END
+  END
+  
+  COPY_EXISTING ~backstab.2da~ ~override~// remove rows for thief kits and non-thieves
+    COUNT_2DA_COLS cols									//count columns
+    COUNT_2DA_ROWS cols rows
+    FOR (row = 1; row < rows; ++ row) BEGIN
+      REMOVE_2DA_ROW 1 cols
+    END
+  BUT_ONLY
+END 

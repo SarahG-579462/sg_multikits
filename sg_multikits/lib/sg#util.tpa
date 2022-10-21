@@ -1,0 +1,70 @@
+
+
+/**
+ * Converts any decimal number into a hexadecimal number
+ */
+DEFINE_ACTION_FUNCTION ~m7#int_to_hex_str~
+	INT_VAR
+		"number" = 0
+	RET
+		"hexstr"
+BEGIN
+	ACTION_DEFINE_ARRAY "hexdigits" BEGIN
+		~0~ ~1~ ~2~ ~3~ ~4~ ~5~ ~6~ ~7~ ~8~ ~9~
+		~a~ ~b~ ~c~ ~d~ ~e~ ~f~
+	END
+	ACTION_IF ("%number%" == 0) BEGIN
+		OUTER_SPRINT "hexstr" "0x00000000"
+	END ELSE BEGIN
+		OUTER_SET "num" = "%number%"
+		OUTER_SET signed = 0
+
+		ACTION_IF ("%num%" < 0) BEGIN
+			OUTER_SET signed = 1
+			OUTER_SET "num" = "%num%"
+		END
+		OUTER_SPRINT "hexstr" ""
+		OUTER_WHILE ("%num%" != 0) BEGIN
+			OUTER_SET "digit" = ("%num%" & 15)
+      //ACTION_IF signed == 1 BEGIN OUTER_SET digit = 15 - "%digit%" END
+			OUTER_SET "%num%" >>= 4
+			OUTER_SPRINT "hexstr" EVAL "%hexdigits_%digit%%%hexstr%"
+		END
+    
+		OUTER_WHILE ((STRING_LENGTH "%hexstr%") < 8) BEGIN
+			OUTER_SPRINT "hexstr" "0%hexstr%"
+		END
+		OUTER_SPRINT "hexstr" "0x%hexstr%"
+	END
+END 
+
+
+DEFINE_PATCH_FUNCTION bl_add_ability_to_clab
+	INT_VAR
+		level = 1
+	STR_VAR
+		ability = ~****~
+BEGIN
+	COUNT_2DA_COLS cols									//count columns
+	COUNT_2DA_ROWS cols rows							//count rows
+	READ_2DA_ENTRIES_NOW array cols						//store entries in array
+  added = 0
+	FOR (row = 0; row < array; ++row) BEGIN				//loop through rows
+		READ_2DA_ENTRY_FORMER array row level value		//entry value
+		PATCH_IF (~%value%~ STRING_EQUAL ~****~) BEGIN	//no value
+			SET_2DA_ENTRY row level cols ~%ability%~	//add ability
+      added = 1
+			row = array//~break
+		END
+	END
+  PATCH_IF added == 0 BEGIN
+    SPRINT newrow "ABILITY    "
+    FOR (col = 1; col < cols; ++col) BEGIN
+      SPRINT newrow "%newrow%****       "
+    END
+    INSERT_2DA_ROW row cols "%newrow%"
+    SET_2DA_ENTRY row level cols ~%ability%~
+  END
+	PRETTY_PRINT_2DA //formatting
+END
+

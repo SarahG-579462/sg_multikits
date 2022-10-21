@@ -1,0 +1,46 @@
+//1. TP2 FILE//
+BACKUP ~sg_multikits/backup~ 
+AUTHOR ~SadieGamer (SG),  sg2475962@gmail.com~ 
+VERSION ~v0.1~
+ALWAYS
+  COPY ~%MOD_FOLDER%/data~ ~override~
+  INCLUDE "%MOD_FOLDER%/lib/sg#backstab.tpa"
+  INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
+END
+//1.2. LANGUAGES//
+
+AUTO_TRA ~%MOD_FOLDER%/translations/%s~
+LANGUAGE ~English~ ~english~ ~%MOD_FOLDER%/translations/english/setup.tra~
+
+//---------------------//
+//PROMPT AND BUILD KITS//
+//---------------------//
+
+BEGIN @100 DESIGNATED 100 // Build (allows to uninstall no_log_record)
+REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
+// this component standardizes backstabs. It also is used so we can uninstall multikits.
+OUTER_SPRINT info @101
+PRINT "%info%"
+
+LAF backup_2da END
+LAF clabify_backstab END
+BEGIN @1000 
+NO_LOG_RECORD 
+DESIGNATED 1000 // Build 
+REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
+REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed uninstallation component first.~
+
+// This component allows you to create multikits; it cannot be uninstalled, but can be installed multiple times.
+OUTER_SPRINT info @1002 
+PRINT "%info%"
+
+//~Please enter the number of multikits you want to create:~
+OUTER_SET createkit = 1 
+OUTER_SET _get2da = 1
+OUTER_WHILE (createkit > 0) BEGIN
+  // The multikit creator function:
+  LAF multikit INT_VAR _get2da = 1 END
+  LAF prompt_yesno STR_VAR prompt = "Create another kit? [Y/N]" RET createkit = output END
+  
+  OUTER_SET _get2da = 0
+END

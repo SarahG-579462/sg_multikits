@@ -1,0 +1,354 @@
+INCLUDE "%MOD_FOLDER%/lib/a7#add_kit_ex.tpa"
+INCLUDE "%MOD_FOLDER%/lib/sg#io.tpa" 
+INCLUDE "%MOD_FOLDER%/lib/sg#prompt.tpa" 
+INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa" 
+
+DEFINE_ACTION_FUNCTION multikit
+  INT_VAR 
+  _get2da = 1
+  _prompt = 1
+  STR_VAR 
+BEGIN
+  CLEAR_IDS_MAP
+
+  // make it easy to access all the needed info
+  
+  ACTION_IF _get2da BEGIN LAM GET_2DAS END
+  
+  ACTION_IF _prompt BEGIN
+    LAM PROMPT_CLASSES
+    
+    //choose kits:
+    OUTER_SPRINT _N_PROMPT_KIT ""
+    LAM PROMPT_KIT
+    LAM PROMPT_KIT
+    ACTION_IF FLAG_TRIPLECLASS BEGIN
+      LAM PROMPT_KIT
+    END
+  END
+  
+  //grab the strings for the multiclass:
+  OUTER_SPRINT _N_SETSUBKIT_STRINGS ""
+  LAM SET_SUBKIT_STRINGS  // FOR MULTICLASS (0)
+  LAM SET_SUBKIT_STRINGS  // FOR KIT1       (1)
+  LAM SET_SUBKIT_STRINGS  // FOR KIT2       (2)
+  ACTION_IF FLAG_TRIPLECLASS BEGIN
+    LAM SET_SUBKIT_STRINGS// FOR KIT3       (3)
+  END
+
+  LAM SET_MULTIKIT_STRINGS
+  
+  LAM VERIFY_BUILD_KIT
+  
+END
+
+
+
+DEFINE_ACTION_MACRO VERIFY_BUILD_KIT
+BEGIN
+  OUTER_SPRINT promptkitmixed "%userkitmixed_1%-%userkitmixed_2%"
+  OUTER_SPRINT promptkitnames "%userkitname_1%-%userkitname_2%"
+  
+  ACTION_IF FLAG_TRIPLECLASS BEGIN
+    OUTER_SPRINT promptkitmixed EVAL "%promptkitmixed%-%userkitmixed_3%"
+    OUTER_SPRINT promptkitnames EVAL "%promptkitnames%-%userkitname_3%"
+
+  END
+  
+  LAF prompt_yesno
+    STR_VAR prompt = EVAL "You have picked: %promptkitmixed% (%promptkitnames%). Are you sure? [Y/N]"
+    RET output
+  END
+  
+  ACTION_IF NOT output BEGIN
+    PRINT ~Select again.~
+    LAF multikit INT_VAR _get2da = 0 END
+  END ELSE BEGIN
+    // choice confirmed. Proceed to build kit.
+    // note: variables are global scope in WEIDU, so no input params needed.
+    LAF build_multikit END
+  END
+END
+
+DEFINE_ACTION_MACRO SET_SUBKIT_STRINGS
+BEGIN
+  ACTION_IF NOT (IS_AN_INT _N_SETSUBKIT_STRINGS) BEGIN
+    OUTER_SET _N_SETSUBKIT_STRINGS = 0
+    ACTION_DEFINE_ARRAY userkitnum      BEGIN END
+    ACTION_DEFINE_ARRAY userkitname     BEGIN END
+    ACTION_DEFINE_ARRAY userkitlower    BEGIN END
+    ACTION_DEFINE_ARRAY userkitmixed    BEGIN END
+    ACTION_DEFINE_ARRAY userkitdesc     BEGIN END
+    ACTION_DEFINE_ARRAY userkitid       BEGIN END
+    ACTION_DEFINE_ARRAY userclassid     BEGIN END
+    ACTION_DEFINE_ARRAY userkitunusable BEGIN END
+  END ELSE BEGIN
+    OUTER_SET _N_SETSUBKIT_STRINGS += 1
+  END
+  ACTION_MATCH "%_N_SETSUBKIT_STRINGS%"
+    WITH
+      0
+      BEGIN
+      OUTER_SPRINT classname "%USERMULTICLASSNAME%"
+      OUTER_SPRINT row $kitlist_rows("%classname%")
+      END
+      1 2 3
+      BEGIN
+      OUTER_SET tmp = "%_N_SETSUBKIT_STRINGS%"
+      OUTER_SPRINT classname EVAL $userkit("%tmp%")
+      OUTER_SPRINT row $kitlist_rows("%classname%")
+      END
+      DEFAULT
+        FAIL ~ERROR: NO SUCH KIT~
+  END
+  ACTION_IF NOT (IS_AN_INT "%row%") BEGIN
+    OUTER_SET row = $clastext_rows("%classname%")
+
+    OUTER_SPRINT $userkitname ("%_N_SETSUBKIT_STRINGS%") $clastext("%row%" 0)
+    OUTER_SPRINT $userclassid("%_N_SETSUBKIT_STRINGS%")  $clastext("%row%" EVAL $clastext_cols("CLASSID"))
+
+
+    ACTION_GET_STRREF $clastext("%row%" EVAL $clastext_cols("MIXED"))   $userkitmixed("%_N_SETSUBKIT_STRINGS%")
+    ACTION_GET_STRREF $clastext("%row%" EVAL $clastext_cols("LOWER"))   $userkitlower("%_N_SETSUBKIT_STRINGS%")
+    ACTION_GET_STRREF $clastext("%row%" EVAL $clastext_cols("DESCSTR")) $userkitdesc("%_N_SETSUBKIT_STRINGS%")
+
+    OUTER_SPRINT $userkitid("%_N_SETSUBKIT_STRINGS%") $clastext("%row%" EVAL $clastext_cols("KITID"))
+    //no kit - get clab:
+    OUTER_SET tmp = "%_N_SETSUBKIT_STRINGS%" - 1
+    ACTION_MATCH $userclassid("%_N_SETSUBKIT_STRINGS%") WITH
+          1 19 BEGIN OUTER_TEXT_SPRINT clab ~CLABMA01~ END  // mage, sorcerer
+          2 BEGIN OUTER_TEXT_SPRINT clab ~CLABFI01~ END // fighter
+          3 BEGIN OUTER_TEXT_SPRINT clab ~CLABPR01~ END // cleric
+          4 BEGIN OUTER_TEXT_SPRINT clab ~CLABTH01~ END // thief
+          5 BEGIN OUTER_TEXT_SPRINT clab ~CLABBA01~ END // bard
+          6 BEGIN OUTER_TEXT_SPRINT clab ~CLABPA01~ END // paladin
+          11 BEGIN OUTER_TEXT_SPRINT clab ~CLABDR01~ END  // druid
+          12 BEGIN OUTER_TEXT_SPRINT clab ~CLABRN01~ END  // ranger
+          20 BEGIN OUTER_TEXT_SPRINT clab ~CLABMO01~ END  // monk
+          21 BEGIN OUTER_TEXT_SPRINT clab ~CLABSH01~ END  // shaman
+          DEFAULT
+        END
+    OUTER_SPRINT $userkitclab("%_N_SETSUBKIT_STRINGS%") "%clab%"
+
+    OUTER_SPRINT $userkitunusable("%_N_SETSUBKIT_STRINGS%") "0x00000000"
+
+  END ELSE BEGIN
+    OUTER_SPRINT $userkitname("%_N_SETSUBKIT_STRINGS%") $kitlist("%row%" EVAL $kitlist_cols("ROWNAME"))
+    OUTER_SPRINT $userclassid("%_N_SETSUBKIT_STRINGS%")  $kitlist("%row%" EVAL $kitlist_cols("CLASS"))
+
+    ACTION_GET_STRREF $kitlist("%row%" EVAL $kitlist_cols("MIXED"))   $userkitmixed("%_N_SETSUBKIT_STRINGS%")
+    ACTION_GET_STRREF $kitlist("%row%" EVAL $kitlist_cols("LOWER"))   $userkitlower("%_N_SETSUBKIT_STRINGS%")
+    ACTION_GET_STRREF $kitlist("%row%" EVAL $kitlist_cols("HELP"))    $userkitdesc("%_N_SETSUBKIT_STRINGS%")
+
+    OUTER_SPRINT $userkitid("%_N_SETSUBKIT_STRINGS%") $kitlist("%row%" EVAL $kitlist_cols("KITIDS"))
+    OUTER_SPRINT $userkitclab("%_N_SETSUBKIT_STRINGS%") $kitlist("%row%" EVAL $kitlist_cols("ABILITIES"))
+    OUTER_SPRINT $userkitunusable("%_N_SETSUBKIT_STRINGS%") $kitlist("%row%" EVAL $kitlist_cols("UNUSABLE"))
+  END
+END
+
+DEFINE_ACTION_MACRO SET_MULTIKIT_STRINGS BEGIN
+  OUTER_SPRINT kitname ~SG_%userkitname_1%_%userkitname_2%~
+  OUTER_SPRINT kitnamemixed ~%userkitmixed_1%-%userkitmixed_2%~
+  OUTER_SPRINT kitnamelower ~%userkitlower_1%-%userkitlower_2%~
+  OUTER_SPRINT kitdesc
+~%userkitdesc_0%
+
+%userkitdesc_1%
+
+%userkitdesc_2%~
+  ACTION_IF FLAG_TRIPLECLASS BEGIN
+    OUTER_SPRINT kitname      ~%kitname%_%userkitname_3%~
+    OUTER_SPRINT kitnamemixed ~%kitnamemixed%-%userkitmixed_3%~
+    OUTER_SPRINT kitnamelower ~%kitnamelower%-%userkitlower_3%~
+    OUTER_SPRINT kitdesc
+  ~%kitdesc%
+
+%userkitdesc_3%~
+  END
+END
+
+
+
+DEFINE_ACTION_FUNCTION build_multikit
+BEGIN
+  OUTER_SPRINT MODPREFIX ~SG~
+
+  LAF merge_2da
+    INT_VAR 
+    STR_VAR
+      filename = ~clasweap~
+      merge1   = EVAL ~%userkitname_1%~
+      merge2   = EVAL ~%userkitname_2%~
+      merge3   = EVAL ~%userkitname_3%~
+      
+    RET kitclasweap = output
+        restrict12cw = restrict12
+        restrict23cw = restrict23
+  END
+
+  LAF merge_2da
+    INT_VAR
+      column = 1
+      restrict12 = "%restrict12cw%"
+      restrict23 = "%restrict23cw%"
+    STR_VAR
+      filename = ~weapprof~
+      merge1   = EVAL ~%userkitname_1%~
+      merge2   = EVAL ~%userkitname_2%~
+      merge3   = EVAL ~%userkitname_3%~
+    RET kitweapprof = output
+  END
+
+
+
+  ACTION_PHP_EACH "2DALIST" AS "2da" => "params" BEGIN
+    LAF SUBSTRING INT_VAR start = 4 length = 1 STR_VAR string = EVAL "%params%" RET param_merge = substring END
+    LAF SUBSTRING INT_VAR start = 2 length = 1 STR_VAR string = EVAL "%params%" RET param_col = substring END
+
+    OUTER_SET param_merge_int = EVAL "%param_merge%"
+    ACTION_IF param_merge_int != 0 BEGIN
+      LAF merge_2da
+        INT_VAR
+          restrict12 = param_merge_int
+          restrict23 = FLAG_TRIPLECLASS ?  param_merge_int : 0
+          column = param_col
+        STR_VAR
+          filename = EVAL "%2da%"
+          merge1   = EVAL ~%userkitname_1%~
+          merge2   = EVAL ~%userkitname_2%~
+          merge3   = EVAL ~%userkitname_3%~
+        RET
+          EVAL "kit%2da%" = output
+      END
+    END
+  END
+  //verify at least one alignment is available, if not, allow for TN.
+
+  ACTION_IF "%kitalignmnt%" STRING_EQUAL " 0 0 0 0 0 0 0 0 0" BEGIN
+    OUTER_SPRINT "%kitalignmnt%" " 0 0 0 0 1 0 0 0 0"
+  END
+
+  // GET MULTICLASS PREFIX:
+  LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_1%" RET pre_1 = substring END
+  LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_2%" RET pre_2 = substring END
+  ACTION_IF FLAG_TRIPLECLASS BEGIN
+    LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_3%" RET pre_3 = substring END
+  END ELSE BEGIN OUTER_SPRINT pre_3  "" END
+  OUTER_SPRINT multiprefix "%pre_1%%pre_2%%pre_3%"
+  PRINT "multiprefix: %multiprefix%"
+
+  //get kittable rowstring
+  OUTER_SET row = $kittable_rows("%userkitname_0%")
+  OUTER_SPRINT userkittable ""
+  ACTION_PHP_EACH "kittable_cols" AS "race" => "col" BEGIN
+    OUTER_SPRINT tmp $kittable("%row%" "%col%")
+    OUTER_SPRINT userkittable EVAL "%userkittable% %tmp%"
+  END
+  PRINT "kittable:%userkittable%(DONE)"
+  OUTER_SET tmp = (STRING_LENGTH "%userkittable%") - 1
+  LAF SUBSTRING INT_VAR start = 1 length = tmp STR_VAR string = EVAL "%userkittable%" RET userkittable = substring END
+  //SET KIT UNUSABILITY (or UNUABLE flag in kitlist)
+  OUTER_SPRINT kitunusab ""
+  OUTER_SET byte_new = $userkitunusable(1) BOR $userkitunusable(2)
+  ACTION_IF FLAG_TRIPLECLASS BEGIN
+    OUTER_SET byte_new = byte_new BOR $userkitunusable(3)
+  END
+
+  LAF ~m7#int_to_hex_str~
+	INT_VAR
+		"number" = byte_new
+	RET
+		kitunusab=hexstr
+  END
+
+  PRINT "
+%userkitunusable_1%
+%userkitunusable_2%
+%userkitunusable_3%
+%kitunusab% = %byte_new%"
+  OUTER_SPRINT clab_base_d ""
+  OUTER_SPRINT clab_base_f ""
+  OUTER_SPRINT clab_base_m ""
+  OUTER_SPRINT clab_base_p ""
+  OUTER_SPRINT clab_base_r ""
+  OUTER_SPRINT clab_base_t ""
+
+  OUTER_FOR (i = 1; i <= STRING_LENGTH "%multiprefix%"; i += 1) BEGIN
+    OUTER_SPRINT clab EVAL "%userkitclab_%i%%"
+    ACTION_MATCH EVAL "%pre_%i%%"
+      WITH
+        ~D~ BEGIN OUTER_SPRINT clab_base_d EVAL "%clab%" END
+        ~F~ BEGIN OUTER_SPRINT clab_base_f EVAL "%clab%" END
+        ~M~ BEGIN OUTER_SPRINT clab_base_m EVAL "%clab%" END
+        ~C~ BEGIN OUTER_SPRINT clab_base_p EVAL "%clab%" END
+        ~R~ BEGIN OUTER_SPRINT clab_base_r EVAL "%clab%" END
+        ~T~ BEGIN OUTER_SPRINT clab_base_t EVAL "%clab%" END
+      DEFAULT
+        FAIL ~UNKNOWN MULTICLASS PREFIX~
+    END
+  END
+  PRINT "clab_base_d  = %clab_base_d%
+clab_base_f  = %clab_base_f%
+clab_base_m  = %clab_base_m%
+clab_base_p  = %clab_base_p%
+clab_base_r  = %clab_base_r%
+clab_base_t  = %clab_base_t%"
+
+  OUTER_SPRINT multiclassid $userclassid(0)
+  LAF ADD_KIT_EX
+    INT_VAR
+      visible       = 1
+      kit_class     = "%multiclassid%"
+      mixed         = RESOLVE_STR_REF ("%kitnamemixed%" )
+      lower         = RESOLVE_STR_REF ("%kitnamelower%"	)
+      help          = RESOLVE_STR_REF ("%kitdesc%"      )
+      // EE-specific arguments
+      biography     = "-2"
+      briefdesc     = "-2"
+      fallen        = "-1"
+      fallen_notice = "-2"
+      prettify      = 1
+    STR_VAR
+      kit_name      = "%kitname%"
+      source_kit    = EVAL ~~
+      unusable      = EVAL ~%kitunusab%~
+      clasweap      = EVAL ~%kitname%%kitclasweap%~
+      weapprof      = EVAL ~%kitname%%kitweapprof%~
+      abclasrq      = EVAL ~%kitname%%kitabclasrq%~
+      abclsmod      = EVAL ~%kitname%%kitabclsmod%~
+      abdcdsrq      = EVAL ~~
+      abdcscrq      = EVAL ~~
+      alignmnt      = EVAL ~%kitname%%kitalignmnt%~
+      dualclas      = EVAL ~~
+      luabbr        = EVAL ~~
+      stweap        = EVAL ~~
+      clab_path     = EVAL ~~
+      kittable      = EVAL ~%userkittable%~
+      base_class    = EVAL ~~
+      clab_base_d   = EVAL ~%clab_base_d%~
+      clab_base_f   = EVAL ~%clab_base_f%~
+      clab_base_m   = EVAL ~%clab_base_m%~
+      clab_base_p   = EVAL ~%clab_base_p%~
+      clab_base_r   = EVAL ~%clab_base_r%~
+      clab_base_t   = EVAL ~%clab_base_t%~
+      // EE-specific arguments
+      clsrcreq      = EVAL ~%kitname%%kitclsrcreq%~
+      clswpbon      = EVAL ~%kitname%%kitclswpbon%~
+      hpclass       = EVAL ~~
+      numwslot      = EVAL ~~
+      clascolr      = EVAL ~%kitname%%kitclascolr%~
+      clasiskl      = EVAL ~%kitname%%kitclasiskl%~
+      clasthac      = EVAL ~%kitname%%kitclasthac%~
+      thiefscl      = EVAL ~%kitname%%kitthiefscl%~
+      backstab      = EVAL ~%kitname%%kitbackstab%~
+      sneakatt      = EVAL ~%kitname%%kitsneakatt%~
+      crippstr      = EVAL ~%kitname%%kitcrippstr%~
+      thiefskl      = EVAL ~%kitname%%kitthiefskl%~
+      traplimt      = EVAL ~~
+      bdstweap      = EVAL ~~
+    RET
+      kit_id
+  END
+
+END
+
