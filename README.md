@@ -8,6 +8,8 @@ Here's the plan:
 - multikit base multiclasses, with user input (DONE v0.1)
 - multikit base multiclasses, create all possible multikit combos and deploy.
   - Need to auto-merge 2das
+  - Too many multikits, will hit 256 kit limit quickly: 1205 from base game alone. 
+  - A possible fix is to create the multikits dynamically thru LUA on character creation... 
 - multikit Druids as Pseudo-clerics (and Pseudo-rangers if user wants cleric-druid combo).
 - multikit rangers as pseudo-clerics, for more multi possibilities
 - multikit Paladins as Pseudo-clerics (and pseudo-rangers for paladin-cleric builds)
