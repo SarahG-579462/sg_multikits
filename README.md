@@ -1,6 +1,6 @@
 # sg_multikits
 
-Like many before it, this mod lets you create multikits. I plan on adding to this mod by implementing ALL the multikits eventually. I'm trying to make it more extensible than CrevsDaak, FlameWing and Abel's versions.
+Like many before it, this mod lets you create multikits. I plan on adding to this mod by implementing ALL the multikits eventually. I'm trying to make it more extensible than CrevsDaak, FlameWing and Abel's versions. Thank you so much to you three for teaching me how I don't want my mod to work, and for some helper functions! Also thanks to subtledoctor and aquadrizzt for their library ADD_KIT_EX, you guys rock :)
 
 This is my first mod, so if you have comments on better practices than my current code, let me know! (I know, I know... I use macros too much. Blame Weidu for not allowing arrays as function inputs)
 
