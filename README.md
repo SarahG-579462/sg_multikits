@@ -14,3 +14,4 @@ Here's the plan:
 - multikit Monks as pseudo-thiefs
 - multikit Bard as thief? - modal abilities for song, thief for pickpocket, and maybe sorcerer-type innate spellcasting?
 - or multikit bard as mage - look into if pickpocketting is possible via spells
+- More triple-class options: Fighter-Cleric-Thief by creating a Fighter-Thief pseudo-thief
