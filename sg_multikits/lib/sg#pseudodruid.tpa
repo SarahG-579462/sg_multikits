@@ -1,0 +1,130 @@
+INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa"
+INCLUDE "%MOD_FOLDER%/lib/sg#pseudo.tpa"
+
+DEFINE_ACTION_FUNCTION druid_pseudocleric 
+STR_VAR kitstr_name
+RET kit_id newname
+BEGIN
+  OUTER_SPRINT newname EVAL "SG_DPC_%kitstr_name%"
+  OUTER_SET classid_cleric = IDS_OF_SYMBOL ( ~CLASS~ ~CLERIC~)
+  LAF CREATE_PSEUDOKIT 
+  INT_VAR classid = classid_cleric
+  STR_VAR oldname = EVAL "%kitstr_name%"
+          newname = EVAL "%newname%"
+  END
+END
+
+DEFINE_ACTION_FUNCTION druid_pseudoranger 
+STR_VAR kitstr_name
+RET kit_id newname
+BEGIN
+  OUTER_SPRINT newname EVAL "SG_DPR_%kitstr_name%"
+  OUTER_SET classid_ranger = IDS_OF_SYMBOL ( ~CLASS~ ~RANGER~)
+  LAF CREATE_PSEUDOKIT 
+  INT_VAR classid = classid_ranger
+  STR_VAR oldname = EVAL "%kitstr_name%"
+          newname = EVAL "%newname%"
+  END
+  LAF fix_fallen STR_VAR kitname = EVAL "%newname%" END
+
+END
+
+DEFINE_ACTION_FUNCTION fix_spells BEGIN
+  OUTER_SET flag_nocleric = IDS_OF_SYMBOL(~BITS~ ~BIT31~)
+  OUTER_SET flag_nodruid  = IDS_OF_SYMBOL(~BITS~ ~BIT32~)
+  COPY_EXISTING_REGEXP ~.*\.SPL~ ~override~
+    PATCH_IF (SOURCE_SIZE > 0x71) BEGIN
+      READ_SHORT 0x1c spelltype
+      PATCH_IF (spelltype == 2) BEGIN
+        READ_LONG 0x1e exclusion
+        LPF forget_wrongspell INT_VAR flag = exclusion BAND (flag_nocleric BOR flag_nodruid) END
+        LPM remove_spellflag_nocleric
+        LPM remove_spellflag_nodruid
+      END
+    END
+  BUT_ONLY
+END
+
+DEFINE_PATCH_MACRO remove_spellflag_nocleric 
+BEGIN
+PATCH_IF (exclusion BAND flag_nocleric) == flag_nocleric BEGIN
+  WRITE_LONG 0x1e (exclusion - flag_nocleric)
+END
+END
+
+DEFINE_PATCH_MACRO remove_spellflag_nodruid BEGIN
+PATCH_IF (exclusion BAND flag_nodruid) == flag_nodruid BEGIN
+  WRITE_LONG 0x1e (exclusion - flag_nodruid)
+END
+END
+
+//this only creates the effect, it doesn't add it anywhere.
+DEFINE_PATCH_FUNCTION forget_wrongspell 
+INT_VAR 
+flag 
+is_priest
+STR_VAR
+spellname
+BEGIN
+PATCH_IF is_priest
+DEFINE_ASSOCIATIVE_ARRAY flags BEGIN
+nocleric      => ~%BIT30% CLASS CLERIC~
+nodruid       => ~%BIT31% CLASS DRUID~
+
+nochaotic     => ~%BIT0% ALIGNMEN CHAOTIC~
+nolawful      => ~%BIT4% ALIGNMEN LAWFUL~
+noGEneutral   => ~%BIT3% ALIGNMEN NEUTRAL_~
+
+nogood        => ~%BIT2% ALIGNMEN GOOD~
+noevil        => ~%BIT1% ALIGNMEN EVIL~
+noLCneutral   => ~%BIT5% ALIGNMEN _NEUTRAL~
+END
+ELSE
+DEFINE_ASSOCIATIVE_ARRAY flags BEGIN
+noabju        => ~%BIT6% KIT ABJURER~
+noconj        => ~%BIT7% KIT CONJURER~
+nodivi        => ~%BIT8% KIT DIVINER~
+noench        => ~%BIT9% KIT ENCHANTER~
+noillu        => ~%BIT10% KIT ILLUSIONIST~
+noinvo        => ~%BIT11% KIT INVOKER~
+nonecro       => ~%BIT12% KIT NECROMANCER~
+notrans       => ~%BIT13% KIT TRANSMUTER~
+nogeneralist  => ~%BIT14% KIT GENERALIST~
+nowildmage    => ~%BIT31% KIT WILDMAGE~
+END
+END
+PATCH_PHP_EACH "flags" AS "currflagname" => "currflag"
+PATCH_IF (flag BAND currflag) == currflag BEGIN
+  INNER_ACTION BEGIN
+    //FIND UNIQUE SPELLNAME:
+    COPY_EXISTING ~blankeff.EFF~ ~override/unmemorize_effect~
+    COPY_EXISTING ~forget_masterspell.EFF~
+  END
+END
+
+END
+
+DEFINE_ACTION_FUNCTION fix_bcs BEGIN
+
+END
+
+DEFINE_ACTION_FUNCTION fix_items BEGIN
+
+END
+
+DEFINE_ACTION_FUNCTION fix_usability BEGIN
+
+END
+
+DEFINE_ACTION_FUNCTION fix_spelleffects BEGIN
+
+END
+
+DEFINE_ACTION_FUNCTION fix_dialog BEGIN
+
+END
+
+DEFINE_ACTION_FUNCTION fix_areas BEGIN
+
+END
+

@@ -8,6 +8,9 @@
 ////////////////////////////////////////////////////////////////////////////////
 @100 = ~INSTALL/UNINSTALL MULTIKITS~
 @101 = ~this component standardizes backstabs to use clabs. It also is used so you can uninstall all multikits.~
+
+@200 = ~Enable Extended Druid Multikits~
+@201 = ~This component turns druid kits into pseudo-clerics and pseudo-rangers.~
 @1000 = ~Multiclass Multikit Builder and Installer~
 @10001 = ~Error: game not available.~
 @1002 = ~This component allows you to create multikits; 
