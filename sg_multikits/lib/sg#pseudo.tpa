@@ -1,0 +1,60 @@
+
+DEFINE_ACTION_FUNCTION CREATE_PSEUDOKIT
+INT_VAR classid
+STR_VAR oldname newname
+RET kit_id
+BEGIN
+  LAF GET_KIT_EX
+    INT_VAR
+      use_parent    = 1
+    STR_VAR
+      kit_name      = "%oldname%"
+    RET
+      kit_id            = kit_id
+      kitref_mixed      = mixed
+      kitref_lower      = lower
+      kitref_help       = help
+      kitref_bio        = biography
+      kitref_briefdesc  = briefdesc
+      kitstr_hp         = hpclass
+      kitstr_rctable    = kittable
+      kitstr_clab       = clab_path
+      kitint_fallen     = fallen
+      kitref_fallen     = fallen_notice
+  END
+
+  LAF ADD_KIT_EX
+    INT_VAR
+      visible       = 0
+      kit_class     = classid
+      mixed         = kitref_mixed
+      lower         = kitref_lower
+      help          = kitref_helf
+      biography     = kitref_bio
+      briefdesc     = kitref_briefdesc
+      fallen        = kitint_fallen
+      fallen_notice = kitref_fallen
+      prettify      = 1
+    STR_VAR
+      kit_name      = EVAL ~%newname%~
+      source_kit    = EVAL ~%oldname%~
+      
+      clab_path     = EVAL ~~
+      kittable      = EVAL ~%kitstr_rctable%~
+      hpclass       = EVAL ~%kitstr_hp%~
+    RET
+      kit_id
+  END
+
+END
+
+DEFINE_ACTION_FUNCTION fix_fallen 
+STR_VAR kitname
+BEGIN
+  COPY_EXISTING ~FALLEN.2DA~ ~override~
+    COUNT_2DA_COLS cols
+    COUNT_2DA_ROWS cols rows
+    INSERT_2DA_ROW rows cols ~%kitname% 0~
+    PRETTY_PRINT_2DA
+  BUT_ONLY
+END
