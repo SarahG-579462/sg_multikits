@@ -2,7 +2,7 @@ INCLUDE "%MOD_FOLDER%/lib/a7#add_kit_ex.tpa"
 INCLUDE "%MOD_FOLDER%/lib/sg#io.tpa" 
 INCLUDE "%MOD_FOLDER%/lib/sg#prompt.tpa" 
 INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa" 
-
+INCLUDE "%MOD_FOLDER%/lib/get_unique_kitname.tpa"
 DEFINE_ACTION_FUNCTION multikit
   INT_VAR 
   _get2da = 1
@@ -117,15 +117,15 @@ BEGIN
     OUTER_SET tmp = "%_N_SETSUBKIT_STRINGS%" - 1
     ACTION_MATCH $userclassid("%_N_SETSUBKIT_STRINGS%") WITH
           1 19 BEGIN OUTER_TEXT_SPRINT clab ~CLABMA01~ END  // mage, sorcerer
-          2 BEGIN OUTER_TEXT_SPRINT clab ~CLABFI01~ END // fighter
-          3 BEGIN OUTER_TEXT_SPRINT clab ~CLABPR01~ END // cleric
-          4 BEGIN OUTER_TEXT_SPRINT clab ~CLABTH01~ END // thief
-          5 BEGIN OUTER_TEXT_SPRINT clab ~CLABBA01~ END // bard
-          6 BEGIN OUTER_TEXT_SPRINT clab ~CLABPA01~ END // paladin
-          11 BEGIN OUTER_TEXT_SPRINT clab ~CLABDR01~ END  // druid
-          12 BEGIN OUTER_TEXT_SPRINT clab ~CLABRN01~ END  // ranger
-          20 BEGIN OUTER_TEXT_SPRINT clab ~CLABMO01~ END  // monk
-          21 BEGIN OUTER_TEXT_SPRINT clab ~CLABSH01~ END  // shaman
+          2    BEGIN OUTER_TEXT_SPRINT clab ~CLABFI01~ END // fighter
+          3    BEGIN OUTER_TEXT_SPRINT clab ~CLABPR01~ END // cleric
+          4    BEGIN OUTER_TEXT_SPRINT clab ~CLABTH01~ END // thief
+          5    BEGIN OUTER_TEXT_SPRINT clab ~CLABBA01~ END // bard
+          6    BEGIN OUTER_TEXT_SPRINT clab ~CLABPA01~ END // paladin
+          11   BEGIN OUTER_TEXT_SPRINT clab ~CLABDR01~ END  // druid
+          12   BEGIN OUTER_TEXT_SPRINT clab ~CLABRN01~ END  // ranger
+          20   BEGIN OUTER_TEXT_SPRINT clab ~CLABMO01~ END  // monk
+          21   BEGIN OUTER_TEXT_SPRINT clab ~CLABSH01~ END  // shaman
           DEFAULT
         END
     OUTER_SPRINT $userkitclab("%_N_SETSUBKIT_STRINGS%") "%clab%"
@@ -146,8 +146,33 @@ BEGIN
   END
 END
 
+DEFINE_ACTION_FUNCTION get_valid_kitname
+  STR_VAR 
+  fullname = ""
+  multiprefix = ""
+  RET
+  kitname
+BEGIN
+  ACTION_IF STRING_LENGTH "%fullname%" > 16 BEGIN
+    LAF GET_UNIQUE_KITNAME STR_VAR prefix = EVAL "SG_%multiprefix%" base = EVAL "%fullname%" RET kitname = kitname END
+    WARN ~kit name %fullname% is too long. Using %kitname% instead.~
+  END ELSE BEGIN
+    OUTER_SPRINT kitname EVAL "%fullname%"
+  END       
+END
+
 DEFINE_ACTION_MACRO SET_MULTIKIT_STRINGS BEGIN
-  OUTER_SPRINT kitname ~SG_%userkitname_1%_%userkitname_2%~
+  
+  // GET MULTICLASS PREFIX:
+  LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_1%" RET pre_1 = substring END
+  LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_2%" RET pre_2 = substring END
+  ACTION_IF FLAG_TRIPLECLASS BEGIN
+    LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_3%" RET pre_3 = substring END
+  END ELSE BEGIN OUTER_SPRINT pre_3  "" END
+  OUTER_SPRINT multiprefix "%pre_1%%pre_2%%pre_3%"
+  PRINT "multiprefix: %multiprefix%"
+  
+  OUTER_SPRINT kitname ~SG_%multiprefix%_%userkitname_1%_%userkitname_2%~
   OUTER_SPRINT kitnamemixed ~%userkitmixed_1%-%userkitmixed_2%~
   OUTER_SPRINT kitnamelower ~%userkitlower_1%-%userkitlower_2%~
   OUTER_SPRINT kitdesc
@@ -164,6 +189,13 @@ DEFINE_ACTION_MACRO SET_MULTIKIT_STRINGS BEGIN
   ~%kitdesc%
 
 %userkitdesc_3%~
+  END
+  
+  LAF get_valid_kitname STR_VAR 
+    fullname = EVAL "%kitname%"
+    multiprefix = EVAL "%multiprefix%"
+    RET
+    kitname = kitname
   END
 END
 
@@ -200,7 +232,6 @@ BEGIN
   END
 
 
-
   ACTION_PHP_EACH "2DALIST" AS "2da" => "params" BEGIN
     LAF SUBSTRING INT_VAR start = 4 length = 1 STR_VAR string = EVAL "%params%" RET param_merge = substring END
     LAF SUBSTRING INT_VAR start = 2 length = 1 STR_VAR string = EVAL "%params%" RET param_col = substring END
@@ -224,18 +255,15 @@ BEGIN
   END
   //verify at least one alignment is available, if not, allow for TN.
 
-  ACTION_IF "%kitalignmnt%" STRING_EQUAL " 0 0 0 0 0 0 0 0 0" BEGIN
+  ACTION_IF NOT ("%kitalignmnt%" STRING_MATCHES_REGEXP "^\( 0\)+$") BEGIN
     OUTER_SPRINT "%kitalignmnt%" " 0 0 0 0 1 0 0 0 0"
+    WARN ~No valid alignment detected for kit. Allowing True Neutral.~
   END
-
-  // GET MULTICLASS PREFIX:
-  LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_1%" RET pre_1 = substring END
-  LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_2%" RET pre_2 = substring END
-  ACTION_IF FLAG_TRIPLECLASS BEGIN
-    LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%USERCLASS_3%" RET pre_3 = substring END
-  END ELSE BEGIN OUTER_SPRINT pre_3  "" END
-  OUTER_SPRINT multiprefix "%pre_1%%pre_2%%pre_3%"
-  PRINT "multiprefix: %multiprefix%"
+  
+  ACTION_IF NOT ("%kitclsrcreq%" STRING_MATCHES_REGEXP "^\( 0\)+$") BEGIN
+    OUTER_SPRINT "%kitalignmnt%" " 1 1 1 1 1 1 1"
+    WARN ~No valid alignment detected for kit. Allowing all races.~
+  END
 
   //get kittable rowstring
   OUTER_SET row = $kittable_rows("%userkitname_0%")
@@ -247,6 +275,7 @@ BEGIN
   PRINT "kittable:%userkittable%(DONE)"
   OUTER_SET tmp = (STRING_LENGTH "%userkittable%") - 1
   LAF SUBSTRING INT_VAR start = 1 length = tmp STR_VAR string = EVAL "%userkittable%" RET userkittable = substring END
+  
   //SET KIT UNUSABILITY (or UNUABLE flag in kitlist)
   OUTER_SPRINT kitunusab ""
   OUTER_SET byte_new = $userkitunusable(1) BOR $userkitunusable(2)

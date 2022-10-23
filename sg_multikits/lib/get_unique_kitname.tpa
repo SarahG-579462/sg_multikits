@@ -1,0 +1,72 @@
+DEFINE_ACTION_FUNCTION ~GET_UNIQUE_KITNAME~
+  STR_VAR extension = ""
+          base = ""
+          prefix = ""
+  RET kitname
+  BEGIN
+    OUTER_PATCH ~~ BEGIN
+      LPF ~GET_UNIQUE_KITNAME~ STR_VAR base = EVALUATE_BUFFER "%base%" prefix = EVALUATE_BUFFER "%prefix%" RET kitname = kitname END
+    END
+END
+
+DEFINE_PATCH_FUNCTION ~BASE36~
+  INT_VAR
+    value = 0
+  RET
+    base36
+  BEGIN
+    PATCH_IF value < 0 || value >= 36 * 36 * 36 * 36 THEN BEGIN
+      PATCH_FAIL ~BASE36 called on %value% (out of bounds 0 <= x < 36 **4)~
+    END
+
+    INNER_PATCH_SAVE base36 ~0000~ BEGIN
+      FOR (i = 3; i >= 0; --i) BEGIN
+        digit = value - (value / 36) * 36
+        value = value / 36
+        WRITE_BYTE i digit + (digit < 10 ? 0x30 : 0x57)
+      END
+    END
+END
+
+DEFINE_PATCH_FUNCTION ~GET_UNIQUE_KITNAME~
+  STR_VAR
+          base = ""
+          prefix = ""
+  RET kitname
+  BEGIN
+    PATCH_IF ~%prefix%~ STRING_EQUAL_CASE ~~ THEN BEGIN
+      PATCH_FAIL ~GET_UNIQUE_KIT_NAME requires to define the prefix variable.~
+    END
+
+    INNER_ACTION BEGIN
+      ACTION_IF ! FILE_EXISTS_IN_GAME ~get_unique_kitname_%prefix%.ids~ THEN BEGIN
+        <<<<<<<< empty
+        >>>>>>>>
+        COPY + empty ~override/get_unique_kitname_%prefix%.ids~
+      END
+    END
+
+    value = ~%base%~ STR_CMP ~~ ?
+      IDS_OF_SYMBOL (~get_unique_kitname_%prefix%~ ~%base%~) : 0 - 1
+    PATCH_IF value = 0 - 1 THEN BEGIN
+      found = 0
+      WHILE !found BEGIN
+        ++value
+        LPF ~BASE36~ INT_VAR value = value RET maybe = base36 END
+        SPRINT kitname ~%prefix%%maybe%~
+        LOOKUP_IDS_SYMBOL_OF_INT exists_val ~get_unique_kitname_%prefix%~ value
+        SET exists_kit = IDS_OF_SYMBOL (~KIT~ kitname)
+        PATCH_IF IS_AN_INT exists_val
+          && (exists_kit == 0 - 1) THEN BEGIN
+          found = 1
+        END
+      END
+      INNER_ACTION BEGIN
+        APPEND + ~get_unique_kitname_%prefix%.ids~ ~%value% %base%~
+      END
+    END ELSE BEGIN
+      LPF ~BASE36~ INT_VAR value = value RET maybe = base36 END
+    END
+
+    SPRINT kitname "%prefix%%maybe%"
+END
