@@ -142,7 +142,9 @@ BEGIN
     ANY   ( ("%class1%" STRING_EQUAL_CASE "MAGE")  AND
             NOT ("%class2%" STRING_EQUAL_CASE "FIGHTER") )
           BEGIN OUTER_SET compare = 1 END
-    ANY   ("%class1%" STRING_EQUAL_CASE "CLERIC")  BEGIN OUTER_SET compare = NOT FLAG_TRIPLECLASS END
+    ANY   ( ("%class1%" STRING_EQUAL_CASE "CLERIC")  AND
+            NOT ("%class2%" STRING_EQUAL_CASE "FIGHTER") ) 
+          BEGIN OUTER_SET compare = NOT FLAG_TRIPLECLASS END
     ANY   ("%class1%" STRING_EQUAL_CASE "THIEF" )  BEGIN OUTER_SET compare = 0 END
     ANY   ("%class1%" STRING_EQUAL_CASE "RANGER")  BEGIN OUTER_SET compare = 0 END
     DEFAULT
@@ -172,8 +174,8 @@ BEGIN
         RET compare = compare
       END
 
-      OUTER_SPRINT TMP EVAL ~correct order? %compare% %USERCLASS_%i%% %USERCLASS_%ip1%%~
-      PRINT "%TMP%"
+      //OUTER_SPRINT TMP EVAL ~correct order? %compare% %USERCLASS_%i%% %USERCLASS_%ip1%%~
+      //PRINT "%TMP%"
       ACTION_IF compare BEGIN //correct order
       END ELSE BEGIN
         OUTER_SPRINT tmp                 $USERCLASS("%i%")
@@ -213,6 +215,110 @@ BEGIN
   PRINT "you have chosen %USERMULTICLASSNAME%."
 END
 
+DEFINE_ACTION_FUNCTION list_class
+  STR_VAR first_class = ""
+  RET list
+  RET_ARRAY classfilter
+BEGIN
+ACTION_DEFINE_ASSOCIATIVE_ARRAY classfilter BEGIN END
+ACTION_IF ("%first_class%" STRING_EQUAL "") BEGIN OUTER_SET num_prompts = 1 END ELSE BEGIN OUTER_SET num_prompts = 2 END
+OUTER_SPRINT "list" ""
+OUTER_SET numlisted = 0
+ACTION_PHP_EACH "multi_grid_rows" AS "classname" => "id" BEGIN
+  OUTER_SET check_filter = 0
+  ACTION_IF (num_prompts == 1) AND
+            ("%classname%" STRING_MATCHES_REGEXP ~.*_.*~)
+            BEGIN
+    OUTER_SET check_filter = 1
+  END
+  ACTION_IF (num_prompts == 2) BEGIN
+    OUTER_SET col = $multi_grid_cols("%classname%")
+    OUTER_SET row = $multi_grid_rows("%first_class%")
+    OUTER_SET check_filter = $multi_grid("%row%" "%col%")
+  END
+  ACTION_IF (check_filter) BEGIN
+    OUTER_SET col = EVAL $clastext_cols("MIXED")
+    OUTER_SET row = EVAL $clastext_rows("%classname%")
+    OUTER_SET numlisted += 1
+    ACTION_GET_STRREF $clastext("%row%" "%col%") "name"
+    OUTER_PATCH_SAVE name "%name%" BEGIN REPLACE_TEXTUALLY "<" "" REPLACE_TEXTUALLY "\(TYPE\)?\(SCHOOL\)?>" "" END
+    OUTER_SPRINT $classfilter("%numlisted%") "%classname%"
+    OUTER_SPRINT "list" "%list%[%numlisted%] %classname% - %name%
+"
+  END
+END
+DEFINE_ACTION_FUNCTION list_kits
+  STR_VAR class = ""
+  RET list numkits
+  RET_ARRAY kitfilter
+BEGIN
+ACTION_DEFINE_ARRAY kitfilter BEGIN END
+
+  OUTER_SPRINT "list" ""
+  OUTER_SET numkits = 0
+  OUTER_SET match = IDS_OF_SYMBOL(~CLASS~ ~%class%~)
+  OUTER_SET colid = EVAL $kitlist_cols("CLASS")
+  ACTION_PHP_EACH "kitlist_rows" AS "kitname" => "row" BEGIN
+    OUTER_SPRINT check_filter EVAL $kitlist("%row%" "%colid%")
+    ACTION_IF IS_AN_INT EVAL "%check_filter%" BEGIN
+      //PRINT "%kitname% is a kit"
+      ACTION_IF ("%check_filter%" == "%match%") BEGIN
+        //PRINT "%kitname% is a %class%"
+        ACTION_IF 1 //GUARD for psionic kits and ohtyr_old
+        BEGIN
+          OUTER_SET numkits += 1
+
+          OUTER_SPRINT $kitfilter("%numkits%") "%kitname%"
+          OUTER_SPRINT "list" "%list%[%numkits%]  (%kitname%)
+"       END
+      END
+    END ELSE BEGIN
+      OUTER_SPRINT $kitfilter("%numkits%") "%class%"
+      OUTER_SPRINT "list" "%list%[%numkits%]  (%class%)
+"   
+    END
+  END
+END
+DEFINE_ACTION_FUNCTION parse_classes
+  STR_VAR 
+  class1 = ""
+  class2 = ""
+  RET 
+  FLAG_TRIPLECLASS
+  NUMCLASS
+  class1
+  class2
+  class3
+  MULTICLASSNAME
+  RET_ARRAY
+  USERCLASS
+BEGIN
+OUTER_SET FLAG_TRIPLECLASS = 0
+OUTER_SPRINT class3 ""
+ACTION_IF NOT ("%class2%" STRING_MATCHES_REGEXP ~.*[_-].*~) BEGIN
+  OUTER_SET FLAG_TRIPLECLASS = 1
+  //split class2:
+  OUTER_PATCH_SAVE class3 "%class2%" BEGIN REPLACE_TEXTUALLY ~.*[_-]~ ~~ END
+  OUTER_PATCH_SAVE class2 "%class2%" BEGIN REPLACE_TEXTUALLY ~[_-].*~ ~~ END
+END
+OUTER_SET NUMCLASS = FLAG_TRIPLECLASS ? 3 : 2
+ACTION_DEFINE_ASSOCIATIVE_ARRAY USERCLASS 
+BEGIN 1 => EVAL "%class1%" 
+      2 => EVAL "%class2%" 
+      3 => EVAL "%class3%" END
+LAM SORTCLASS
+OUTER_SPRINT class1 "%USERCLASS_1%"
+OUTER_SPRINT class2 "%USERCLASS_2%"
+OUTER_SPRINT class3 "%USERCLASS_3%"
+OUTER_SPRINT MULTICLASSNAME EVAL "%USERCLASS_1%_%USERCLASS_2%"
+ACTION_IF FLAG_TRIPLECLASS BEGIN
+  OUTER_SPRINT MULTICLASSNAME EVAL "%MULTICLASSNAME%_%USERCLASS_3%"
+END
+END
+  
+  
+
+END
 DEFINE_ACTION_FUNCTION prompt_class
   STR_VAR first_class = ~~
   RET
