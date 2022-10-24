@@ -6,8 +6,10 @@ This is my first mod, so if you have comments on better practices than my curren
 
 Here's the plan:
 - multikit base multiclasses, with user input (DONE v0.1)
-- multikit base multiclasses, create all possible multikit combos and deploy.
-  - Need to auto-merge 2das
+- auto-merge 2das without user input
+- Fix for auto-gain abilities from base class
+- Merge HLA tables
+- ~~multikit base multiclasses, create all possible multikit combos and deploy.~~
   - Too many multikits, will hit 256 kit limit quickly: 1205 from base game alone. 
   - A possible fix is to create the multikits dynamically thru LUA on character creation... 
 - multikit Druids as Pseudo-clerics (and Pseudo-rangers if user wants cleric-druid combo).
