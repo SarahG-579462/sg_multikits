@@ -19,7 +19,8 @@ Here's the plan:
 - multikit Shamans via Subtledoctor's code
 - multikit Monks as pseudo-thiefs
 - multikit Bard as thief? - modal abilities for song, thief for pickpocket, and maybe sorcerer-type innate spellcasting?
-- or multikit bard as mage - look into if pickpocketting is possible via spells
+- or multikit bard as mage - look into if pickpocketting is possible via spells or use EEex
 - More triple-class options: Fighter-Cleric-Thief by creating a Fighter-Thief pseudo-thief
+- Maybe a Mage-Cleric-Thief would be possible through EEex, by adding abilitybar buttons for a cleric-mage
 
 Discussion thread: https://forums.beamdog.com/discussion/86729/mod-sg-multikits-v0-1-beta-full-multikits-for-all-classes
