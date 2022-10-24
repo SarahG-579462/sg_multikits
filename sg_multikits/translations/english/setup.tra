@@ -6,21 +6,20 @@
 //  lines (translation is not needed)                                         //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-@100 = ~INSTALL/UNINSTALL MULTIKITS~
+@100 = ~INSTALL/UNINSTALL MULTIKITS [Install after any thief kits!]~
 @101 = ~this component standardizes backstabs to use clabs. It also is used so you can uninstall all multikits.~
 
-@200 = ~Enable Extended Druid Multikits~
+@200 = ~Enable Extended Druid Multikits [Install after any mod that adds priest spells!]~
 @201 = ~This component turns druid kits into pseudo-clerics and pseudo-rangers.~
 @1000 = ~Multiclass Multikit Builder and Installer~
 @10001 = ~Error: game not available.~
 @1002 = ~This component allows you to create multikits; 
-it cannot be uninstalled, but can be installed multiple times. 
+it can only be uninstalled by UNINSTALLING component 100, but can be installed multiple times. 
 Each time you install this component, you can create as many multikits as you elect to; 
 the multikits will be installed. See the readme for further instructions.
 
 All told, you should probably not install more than 200 multikits at the same time.
-
-NOTE: THIS COMPONENT INSTALLS THE MULTIKITS.~
+~
 @1003 = ~Multikit created; <NUM> multikits to go.~
 
 

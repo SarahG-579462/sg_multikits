@@ -28,6 +28,18 @@ DEFINE_PATCH_FUNCTION ~BASE36~
     END
 END
 
+DEFINE_ACTION_FUNCTION ~REINITIALIZE_UNIQUE_KITNAMES~ BEGIN
+  ACTION_DEFINE_ARRAY files BEGIN END
+  OUTER_SET i = 0
+  COPY_EXISTING_REGEXP ~get_unique_kitname_.*\.ids~ ~override~
+    SPRINT $files(i) EVAL ~%SOURCE_FILE%~
+  BUT_ONLY
+  <<<<<<<< empty
+  >>>>>>>>
+  ACTION_PHP_EACH "files" AS "id" => "file" BEGIN
+    COPY + empty ~override/%file%~
+  END
+END
 DEFINE_PATCH_FUNCTION ~GET_UNIQUE_KITNAME~
   STR_VAR
           base = ""

@@ -1,5 +1,69 @@
 
+DEFINE_ACTION_FUNCTION DEBUGPRINT STR_VAR func = "DEBUGPRINT" BEGIN 
+ACTION_IF DEBUG == 1 BEGIN
+  PRINT "ENTERING FUNCTION: %func%"
+END
+END
+DEFINE_ACTION_FUNCTION init_globals STR_VAR filename = "SG_GLOBALS" RET filename BEGIN
+  ACTION_IF ! FILE_EXISTS_IN_GAME ~%filename%.2DA~ THEN BEGIN
+    <<<<<<<< empty
+    >>>>>>>>
+    COPY + empty ~override/%filename%.2DA~
+  END
+END
 
+DEFINE_ACTION_FUNCTION clear_globals STR_VAR filename = "SG_GLOBALS" BEGIN
+  DELETE ~override/%filename%.2DA~
+END
+
+DEFINE_ACTION_FUNCTION rglobal STR_VAR name = ~~ RET value BEGIN
+  LAF init_globals RET filename = filename END
+  OUTER_SPRINT value ""
+  COPY_EXISTING ~override/%filename%.2DA~ ~override~
+    READ_2DA_ENTRIES_NOW "globals" 1
+    FOR (i = 0; i < globals; ++i) BEGIN
+      READ_2DA_ENTRY_FORMER "globals" i 0 "currrow"
+      READ_2DA_ENTRY_FORMER "globals" i 1 "currval"
+      PATCH_IF(EVAL "%currrow%" STR_EQ EVAL "%name%") BEGIN
+        i = globals
+        value = EVAL "%currval%"
+      END
+    END
+  BUT_ONLY
+  ACTION_IF "%value%" STR_EQ "" BEGIN
+    FAIL ~could not read value: %name%.~
+  END
+END
+
+DEFINE_ACTION_FUNCTION wglobal INT_VAR value = 0 STR_VAR name = ~~ BEGIN
+  LAF init_globals RET filename = filename END
+  COPY_EXISTING ~override/%filename%.2DA~ ~override~
+    READ_2DA_ENTRIES_NOW "globals" 1
+    set_value = 0
+    FOR (i = 0; i < globals; ++i) BEGIN
+      READ_2DA_ENTRY_FORMER "globals" i 0 "currrow"
+      READ_2DA_ENTRY_FORMER "globals" i 1 "currval"
+      PATCH_IF (EVAL "%currrow%" STR_EQ EVAL "%name%") BEGIN
+        i = globals
+        SET_2DA_ENTRY i 1 value
+        set_value = 1
+      END
+    END
+    PATCH_IF NOT set_value BEGIN
+      INSERT_2DA_ROW globals 1 EVAL "%name% %value%"
+      set_value = 1
+    END
+  BUT_ONLY
+  ACTION_IF set_value = 0 BEGIN
+    FAIL ~could not write value: %name%~
+  END
+END
+
+DEFINE_ACTION_FUNCTION increment_global STR_VAR name = ~~ RET valuenew BEGIN
+LAF rglobal STR_VAR name = EVAL "%name%" RET value = value END
+OUTER_SET valuenew = value + 1
+LAF wglobal INT_VAR value = valuenew STR_VAR name =  EVAL "%name%" END
+END
 /**
  * Converts any decimal number into a hexadecimal number
  */

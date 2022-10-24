@@ -4,11 +4,16 @@ AUTHOR ~SadieGamer (SG),  sg2475962@gmail.com~
 VERSION ~v0.1~
 ALWAYS
   COPY ~%MOD_FOLDER%/data~ ~override~
-  INCLUDE "%MOD_FOLDER%/lib/sg#backstab.tpa"
   INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
-  INCLUDE "%MOD_FOLDER%/lib/sg#io.tpa"
-  INCLUDE "%MOD_FOLDER%/lib/sg#prompt.tpa"
+  OUTER_SET DEBUG = 0
   LAM GET_2DAS
+  ACTION_IF IS_AN_INT "%_N_PROMPT_TOTAL%" BEGIN
+    LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END
+  END ELSE BEGIN 
+    LAF wglobal INT_VAR value = 0 - 1 STR_VAR name = "_N_PROMPT_TOTAL" END
+    OUTER_SET _N_PROMPT_TOTAL = 0 - 1
+  END
+  
 END
 //1.2. LANGUAGES//
 
@@ -24,16 +29,20 @@ REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
 // this component standardizes backstabs. It also is used so we can uninstall multikits.
 OUTER_SPRINT info @101
 PRINT "%info%"
+INCLUDE "%MOD_FOLDER%/lib/sg#backstab.tpa"
 
 LAF backup_2da END
+LAF REINITIALIZE_UNIQUE_KITNAMES END
 LAF clabify_backstab END
 
-/* BEGIN @200 DESIGNATED 200 // PSEUDO-DRUID
+BEGIN @200 
+DESIGNATED 200 // PSEUDO-DRUID
+DEPRECATED ~Sorry, this component isn't ready yet.~
 REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
 REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed base component first.~
 INCLUDE "%MOD_FOLDER%/lib/sg#pseudodruid.tpa"
 OUTER_SPRINT info @201
-PRINT "%info%" */
+PRINT "%info%" 
 
 BEGIN @1000 
 NO_LOG_RECORD 
@@ -41,75 +50,28 @@ DESIGNATED 1000 // Build
 REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
 REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed base component first.~
 
-// This component allows you to create multikits; it cannot be uninstalled, but can be installed multiple times.
+// This component allows you to create multikits; it can only be uninstalled by UNINSTALLING component 100, but can be installed multiple times.
 OUTER_SPRINT info @1002 
 PRINT "%info%"
 
-//~Please enter the number of multikits you want to create:~
 OUTER_SET createkit = 1 
-OUTER_SET _get2da = 1
+OUTER_SET _get2da = 0
+OUTER_SPRINT nother ""
 OUTER_WHILE (createkit > 0) BEGIN
   // The multikit creator function:
-  LAF multikit INT_VAR _get2da = 1 END
-  LAF prompt_yesno STR_VAR prompt = "Create another kit? [Y/N]" RET createkit = output END
-  
-  OUTER_SET _get2da = 0
-END
-
-/* 
-BEGIN @2000  
-DESIGNATED 2000 // Build 
-REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
-REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed uninstallation component first.~
-
-OUTER_SET total_kits = 0
-ACTION_DEFINE_ASSOCIATIVE_ARRAY multiclass_list BEGIN END
-LAF list_class RET list = list RET_ARRAY firstclasses = classfilter END
-
-ACTION_PHP_EACH "firstclasses" AS "listing1" => "class1" BEGIN
-  ACTION_CLEAR_ARRAY "secondclasses"
-  LAF list_class STR_VAR first_class = EVAL "%class1%" RET list = list RET_ARRAY secondclasses = classfilter END
-  
-  ACTION_PHP_EACH "secondclasses" AS "listing2" => "class2" BEGIN
-    OUTER_SPRINT class3 ""
-    LAF parse_classes
-        STR_VAR 
-        class1 = EVAL "%class1%"
-        class2 = EVAL "%class2%"
-        RET 
-        FLAG_TRIPLECLASS
-        NUMCLASS
-        newclass1 = class1
-        newclass2 = class2
-        newclass3 = class3
-        MULTICLASSNAME
-        RET_ARRAY
-        USERCLASS
-      END
-      //PRINT "%MULTICLASSNAME%: %newclass1% %newclass2% %newclass3%"
-     
-    ACTION_IF NOT (IS_AN_INT $multiclass_list("%MULTICLASSNAME%")) BEGIN
-      OUTER_SPRINT list1 ""
-      OUTER_SPRINT list2 ""
-      OUTER_SPRINT list3 ""
-      
-      LAF list_kits STR_VAR class = EVAL "%newclass1%" RET numkits1 = numkits list1 = list END
-      LAF list_kits STR_VAR class = EVAL "%newclass2%" RET numkits2 = numkits list2 = list END
-      ACTION_IF FLAG_TRIPLECLASS BEGIN
-        LAF list_kits STR_VAR class = EVAL "%newclass3%" RET numkits3 = numkits list3 = list END
-      END ELSE BEGIN OUTER_SET numkits3 = 0 END
-      OUTER_SET multikits = (1 + numkits1)*(1 + numkits2)*(1 + numkits3)
-      OUTER_SET total_kits += multikits
-      OUTER_SET $multiclass_list("%MULTICLASSNAME%") = multikits
-      PRINT "%MULTICLASSNAME% = %multikits%"
-      PRINT "%list1% 
-  %list2%
-    %list3%"
-    END 
+  LAF prompt_yesno STR_VAR prompt = EVAL "Create a%nother% kit? [Y/N]" RET createkit = output END
+  ACTION_IF createkit BEGIN
+    LAF multikit INT_VAR _get2da = _get2da END
   END
+  OUTER_SET _get2da = 1
+  OUTER_SPRINT nother "nother"
 END
-PRINT "we need to create %total_kits%."
-ACTION_IF total_kits > 256 BEGIN
-  FAIL ~TOO MANY KITS TO CREATE!~
-END
- */
+
+BEGIN @2000 
+DESIGNATED 2000 // Dynamic Kit Creation
+DEPRECATED ~Sorry, this component isn't ready yet.~
+REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
+REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed base component first.~
+INCLUDE "%MOD_FOLDER%/lib/sg#dynamic.tpa"
+OUTER_SPRINT info @2001
+PRINT "%info%"

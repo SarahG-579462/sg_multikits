@@ -1,4 +1,5 @@
 
+
 DEFINE_ACTION_FUNCTION prompt_integer
   INT_VAR
     min =   0
@@ -7,24 +8,37 @@ DEFINE_ACTION_FUNCTION prompt_integer
     "prompt" = ~Input Integer: ~
   RET
     output
+    
 BEGIN
+  LAF DEBUGPRINT STR_VAR func="prompt_integer" END
+  LAF increment_global STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = valuenew END
+    
   OUTER_SET looping = 1
   OUTER_SET output =  0
 
   OUTER_WHILE (looping == 1) BEGIN
     // Prompt:
     PRINT "%prompt%"
-    ACTION_READLN "output"
-    // Input check:
-    ACTION_IF (IS_AN_INT "%output%") AND
-              ("%output%" >= min) AND
-              ("%output%" <= max)
-    BEGIN
+    ACTION_IF (IS_AN_INT EVAL "%argv[%_N_PROMPT_TOTAL%]%") BEGIN //read from input command
+      OUTER_SET output = EVAL "%argv[%_N_PROMPT_TOTAL%]%"
       OUTER_SET looping = 0
-    END ELSE BEGIN
-      PRINT ~Not a valid integer~
+      PRINT ~Auto Input: %output%~
+    END ELSE BEGIN// read interactively
+        
+      ACTION_READLN "output"
+      // Input check:
+      ACTION_IF (IS_AN_INT "%output%") AND
+                ("%output%" >= min) AND
+                ("%output%" <= max)
+      BEGIN
+        OUTER_SET looping = 0
+      END ELSE BEGIN
+        PRINT ~Not a valid integer~
+      END
     END
   END
+  
+  ACTION_IF ("%output%" < min) OR ("%output%" > max) BEGIN FAIL ~No valid integer passed to prompt_integer~ END
 END
 
 DEFINE_ACTION_FUNCTION prompt_yesno
@@ -35,33 +49,44 @@ DEFINE_ACTION_FUNCTION prompt_yesno
   RET
     output
 BEGIN
+  LAF DEBUGPRINT STR_VAR func="prompt_yesno" END
+  LAF increment_global STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = valuenew END
   OUTER_SET looping = 1
   OUTER_SET output =  0
 
   OUTER_WHILE (looping == 1) BEGIN
     // Prompt:
     PRINT "%prompt%"
-    ACTION_READLN "input"
-    // Input check:
-    ACTION_IF ("%input%" STRING_EQUAL "0") OR
-              ("%input%" STRING_EQUAL_CASE "%custom_n%")
-    BEGIN
-      OUTER_SET output = 0
+    ACTION_IF (IS_AN_INT EVAL "%argv[%_N_PROMPT_TOTAL%]%") BEGIN //read from input command
+      OUTER_SET output = EVAL "%argv[%_N_PROMPT_TOTAL%]%"
       OUTER_SET looping = 0
-    END
+      PRINT ~Auto Input: %output%~
+    END ELSE BEGIN
+      ACTION_READLN "input"
+      // Input check:
+      ACTION_IF ("%input%" STRING_EQUAL "0") OR
+                ("%input%" STRING_EQUAL_CASE "%custom_n%")
+      BEGIN
+        OUTER_SET output = 0
+        OUTER_SET looping = 0
+      END
 
-    ACTION_IF ("%input%" STRING_EQUAL "1") OR
-              ("%input%" STRING_EQUAL_CASE "%custom_y%")
-    BEGIN
-      OUTER_SET output = 1
-      OUTER_SET looping = 0
+      ACTION_IF ("%input%" STRING_EQUAL "1") OR
+                ("%input%" STRING_EQUAL_CASE "%custom_y%")
+      BEGIN
+        OUTER_SET output = 1
+        OUTER_SET looping = 0
+      END
     END
 
   END
+  ACTION_IF ("%output%" < 0) OR ("%output%" > 1) BEGIN FAIL ~No valid integer passed to prompt_yesno~ END
+
 END
 
 DEFINE_ACTION_MACRO PROMPT_KIT
 BEGIN
+  LAF DEBUGPRINT STR_VAR func="PROMPT_KIT" END 
   ACTION_IF NOT (IS_AN_INT _N_PROMPT_KIT) BEGIN
     OUTER_SET _N_PROMPT_KIT = 1
   END ELSE BEGIN
@@ -128,6 +153,7 @@ class2 = ~~
 RET
 compare
 BEGIN
+  LAF DEBUGPRINT STR_VAR func="compareclassorder" END 
   OUTER_SET compare = 0// CORRECT ORDER: 1 INCORRECT ORDER: 0
 
   ACTION_MATCH ~1~
@@ -156,6 +182,7 @@ END
 
 DEFINE_ACTION_MACRO SORTCLASS //sigh...
 BEGIN
+  LAF DEBUGPRINT STR_VAR func="SORTCLASS" END 
   OUTER_SET i = 1
   OUTER_SET compare = 0
   OUTER_SET changed = 1
@@ -193,6 +220,7 @@ END
 DEFINE_ACTION_MACRO PROMPT_CLASSES
 BEGIN
   //grab the classes.
+  LAF DEBUGPRINT STR_VAR func="PROMPT_CLASSES" END 
   ACTION_DEFINE_ARRAY USERCLASS BEGIN END
   LAF prompt_class
     RET_ARRAY USERCLASS = userclass
@@ -220,6 +248,8 @@ DEFINE_ACTION_FUNCTION list_class
   RET list
   RET_ARRAY classfilter
 BEGIN
+  LAF DEBUGPRINT STR_VAR func="list_class" END 
+
 ACTION_DEFINE_ASSOCIATIVE_ARRAY classfilter BEGIN END
 ACTION_IF ("%first_class%" STRING_EQUAL "") BEGIN OUTER_SET num_prompts = 1 END ELSE BEGIN OUTER_SET num_prompts = 2 END
 OUTER_SPRINT "list" ""
@@ -252,6 +282,8 @@ DEFINE_ACTION_FUNCTION list_kits
   RET list numkits
   RET_ARRAY kitfilter
 BEGIN
+  LAF DEBUGPRINT STR_VAR func="list_kits" END 
+
 ACTION_DEFINE_ARRAY kitfilter BEGIN END
 
   OUTER_SPRINT "list" ""
@@ -293,6 +325,8 @@ DEFINE_ACTION_FUNCTION parse_classes
   RET_ARRAY
   USERCLASS
 BEGIN
+LAF DEBUGPRINT STR_VAR func="parse_classes" END 
+
 OUTER_SET FLAG_TRIPLECLASS = 0
 OUTER_SPRINT class3 ""
 ACTION_IF NOT ("%class2%" STRING_MATCHES_REGEXP ~.*[_-].*~) BEGIN
@@ -327,6 +361,7 @@ DEFINE_ACTION_FUNCTION prompt_class
     userclass
 BEGIN
   // list classes to choose
+  LAF DEBUGPRINT STR_VAR func="prompt_class" END 
   ACTION_DEFINE_ARRAY classfilter BEGIN END
   ACTION_DEFINE_ARRAY userclass BEGIN END
   ACTION_IF ("%first_class%" STRING_EQUAL "") BEGIN OUTER_SET num_prompts = 1 END ELSE BEGIN OUTER_SET num_prompts = 2 END
@@ -355,10 +390,10 @@ BEGIN
 "
     END
   END
-
   //choose list
   OUTER_SET userclassnum = 0
   OUTER_SPRINT _p @1020 // ~Choose class~
+  
   LAF prompt_integer
     INT_VAR min = 1
             max = numlisted
