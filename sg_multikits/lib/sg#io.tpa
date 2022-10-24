@@ -185,8 +185,8 @@ BEGIN
   END
   ACTION_IF (restrict23 == 0 AND FLAG_TRIPLECLASS) BEGIN
     PRINT "How would you like to merge %filename% for %merge1%-%merge2% and %merge3%?
-[1] First  class priority (%merge1%, Kensai-Mage, Barbarian-Mage, etc.)
-[2] Second class priority (%merge2%)
+[1] First-Second class priority (%merge1%-%merge2%, Kensai-Mage, Barbarian-Mage, etc.)
+[2] Third class priority (%merge3%)
 [3] Loosen   (like Fighter-Mage weapons)
 [4] Restrict (like Fighter-Cleric weapons)
 [5] Sum
