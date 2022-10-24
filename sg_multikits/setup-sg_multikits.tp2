@@ -28,12 +28,12 @@ PRINT "%info%"
 LAF backup_2da END
 LAF clabify_backstab END
 
-BEGIN @200 DESIGNATED 200 // PSEUDO-DRUID
+/* BEGIN @200 DESIGNATED 200 // PSEUDO-DRUID
 REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
 REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed base component first.~
 INCLUDE "%MOD_FOLDER%/lib/sg#pseudodruid.tpa"
 OUTER_SPRINT info @201
-PRINT "%info%"
+PRINT "%info%" */
 
 BEGIN @1000 
 NO_LOG_RECORD 
