@@ -2,11 +2,13 @@
 BACKUP ~sg_multikits/backup~ 
 AUTHOR ~SadieGamer (SG),  sg2475962@gmail.com~ 
 VERSION ~v0.1~
+ASK_EVERY_COMPONENT
+
 ALWAYS
   COPY ~%MOD_FOLDER%/data~ ~override~
   INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
   
-  OUTER_SET DEBUG = 0
+  OUTER_SET DEBUG = 1
   LAM GET_2DAS
   ACTION_IF IS_AN_INT "%_N_PROMPT_TOTAL%" BEGIN
     LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END
@@ -15,7 +17,28 @@ ALWAYS
     LAF wglobal INT_VAR value = 0 - 1 STR_VAR name = "_N_PROMPT_TOTAL" END
     OUTER_SET _N_PROMPT_TOTAL = 0 - 1
   END
-  
+<<<<<<<<  .../sg_multikits/APPENDINSTALL
+BEGIN @1000
+DESIGNATED <COMPONENT>
+//<INSTALLFLAG>
+//<\INSTALLFLAG>
+REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
+REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed base component first.~
+OUTER_SPRINT info @1002 
+PRINT "%info%"
+OUTER_SET createkit = 1 
+OUTER_SET _get2da = 0
+OUTER_SPRINT nother ""
+OUTER_WHILE (createkit > 0) BEGIN
+  // The multikit creator function:
+  LAF prompt_yesno STR_VAR prompt = EVAL "Create a%nother% kit? [Y/N]" RET createkit = output END
+  ACTION_IF createkit BEGIN
+    LAF multikit INT_VAR _get2da = _get2da END
+  END
+  OUTER_SET _get2da = 1
+  OUTER_SPRINT nother "nother"
+END
+>>>>>>>>
 END
 //1.2. LANGUAGES//
 
@@ -25,6 +48,9 @@ LANGUAGE ~English~ ~english~ ~%MOD_FOLDER%/translations/english/setup.tra~
 //---------------------//
 //PROMPT AND BUILD KITS//
 //---------------------//
+// CODE APPENDED TO TP2 TO INSTALL/UNINSTALL
+
+
 BEGIN "TEST COMPONENT" DESIGNATED 1
   LAF prompt_yesno STR_VAR prompt = "testing [y/n]" RET output END
   LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END PRINT "_N_PROMPT_TOTAL: %_N_PROMPT_TOTAL%"
@@ -41,6 +67,7 @@ PRINT "%info%"
 INCLUDE "%MOD_FOLDER%/lib/sg#backstab.tpa"
 
 LAF backup_2da END
+
 LAF REINITIALIZE_UNIQUE_KITNAMES END
 LAF clabify_backstab END
 
@@ -53,28 +80,58 @@ INCLUDE "%MOD_FOLDER%/lib/sg#pseudodruid.tpa"
 OUTER_SPRINT info @201
 PRINT "%info%" 
 
-BEGIN @1000 
-NO_LOG_RECORD 
-DESIGNATED 1000 // Build 
+BEGIN @900  
+NO_LOG_RECORD
+DESIGNATED 900 // uninstall 
 REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
 REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed base component first.~
 
-// This component allows you to create multikits; it can only be uninstalled by UNINSTALLING component 100, but can be installed multiple times.
-OUTER_SPRINT info @1002 
-PRINT "%info%"
-
-OUTER_SET createkit = 1 
-OUTER_SET _get2da = 0
-OUTER_SPRINT nother ""
-OUTER_WHILE (createkit > 0) BEGIN
-  // The multikit creator function:
-  LAF prompt_yesno STR_VAR prompt = EVAL "Create a%nother% kit? [Y/N]" RET createkit = output END
-  ACTION_IF createkit BEGIN
-    LAF multikit INT_VAR _get2da = _get2da END
-  END
-  OUTER_SET _get2da = 1
-  OUTER_SPRINT nother "nother"
+PRINT "Uninstalling all multikits. Please be patient..."
+OUTER_SPRINT dir_sub ~%MOD_FOLDER%/lib/subcomponent~
+ACTION_IF ! (FILE_EXISTS ~%dir_sub%/installmultikit.tp2~) BEGIN
+  OUTER_SPRINT fileToCopy ~%dir_sub%/installmultikit_original.tp2~
+END ELSE BEGIN
+  OUTER_SPRINT fileToCopy ~%dir_sub%/installmultikit.tp2~
 END
+COPY + "%fileToCopy%"  ~%dir_sub%/installmultikit.tp2~
+  REPLACE_TEXTUALLY CASE_SENSITIVE "<INSTALLFLAG>.*<\INSTALLFLAG>" "DEPRECATED @901"
+LAF clear_globals STR_VAR filename = "SG_PERSISTENT" END
+AT_EXIT ~%dir_sub%/installmultikit.tp2~
+
+BEGIN @1000  
+NO_LOG_RECORD
+DESIGNATED 1000 // Build 
+REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
+REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed base component first.~
+OUTER_SPRINT dir_sub ~%MOD_FOLDER%/lib/subcomponent~
+
+// SET or INCREMENT component number
+ACTION_IF IS_AN_INT "%_CURR_COMPONENT%" BEGIN
+  LAF increment_global STR_VAR name = "_CURR_COMPONENT" RET _CURR_COMPONENT = newvalue END
+END ELSE BEGIN 
+  LAF init_globals INT_VAR persistent = 1 STR_VAR filename = "SG_PERSISTENT" END
+  LAF rglobal STR_VAR filename = "SG_PERSISTENT" name = "_CURR_COMPONENT" RET _CURR_COMPONENT = value END
+  ACTION_IF NOT (IS_AN_INT EVAL "%_CURR_COMPONENT%") BEGIN 
+    LAF wglobal INT_VAR value = 1001 STR_VAR filename = "SG_PERSISTENT" name = "_CURR_COMPONENT" END
+    OUTER_SET _CURR_COMPONENT = 1001
+  END
+END
+
+ACTION_IF ! (FILE_EXISTS ~%dir_sub%/installmultikit.tp2~) BEGIN
+  OUTER_SPRINT fileToCopy ~%dir_sub%/installmultikit_original.tp2~
+END ELSE BEGIN
+  OUTER_SPRINT fileToCopy ~%dir_sub%/installmultikit.tp2~
+END 
+COPY + "%fileToCopy%" ~%dir_sub%/installmultikit.tp2~
+  REPLACE_TEXTUALLY CASE_SENSITIVE "<INSTALLFLAG>.*<\\INSTALLFLAG>" 
+"<INSTALLFLAG>
+REQUIRE_COMPONENT ~%dir_sub%/installmultikit.tp2~ ~<COMPONENT>~ ~Component already used up.~
+//<\INSTALLFLAG>" //
+  APPEND_FILE ".../sg_multikits/APPENDINSTALL"
+  REPLACE_TEXTUALLY CASE_SENSITIVE "<COMPONENT>" "%_CURR_COMPONENT%"
+  EVALUATE_BUFFER
+AT_EXIT ~%dir_sub%/installmultikit.tp2~
+
 
 BEGIN @2000 
 DESIGNATED 2000 // Dynamic Kit Creation

@@ -4,11 +4,15 @@ ACTION_IF DEBUG >= level BEGIN
   PRINT "ENTERING FUNCTION: %func%"
 END
 END
-DEFINE_ACTION_FUNCTION init_globals STR_VAR filename = "SG_GLOBALS" RET filename BEGIN
+DEFINE_ACTION_FUNCTION init_globals INT_VAR persistent = 0 STR_VAR filename = "SG_GLOBALS" RET filename BEGIN
   //LAF DEBUGPRINT STR_VAR func = "init_globals" END
   ACTION_IF ! FILE_EXISTS_IN_GAME ~override/%filename%.2DA~ THEN BEGIN
     LAF DEBUGPRINT STR_VAR func = EVAL "init_globals: copying EMPTY2DA to %filename%" END
-    COPY ~%MOD_FOLDER%/data/EMPTY2DA.2DA~ ~override/%filename%.2DA~
+    ACTION_IF persistent BEGIN 
+      COPY + ~%MOD_FOLDER%/data/EMPTY2DA.2DA~ ~override/%filename%.2DA~
+    END ELSE BEGIN
+      COPY ~%MOD_FOLDER%/data/EMPTY2DA.2DA~ ~override/%filename%.2DA~
+    END
   END ELSE BEGIN LAF DEBUGPRINT STR_VAR func = EVAL "init_globals: %filename% already exists." END
     END
 END
@@ -18,9 +22,9 @@ DEFINE_ACTION_FUNCTION clear_globals STR_VAR filename = "SG_GLOBALS" BEGIN
   DELETE ~override/%filename%.2DA~
 END
 
-DEFINE_ACTION_FUNCTION rglobal STR_VAR name = ~~ RET value BEGIN
+DEFINE_ACTION_FUNCTION rglobal STR_VAR filename = "SG_GLOBALS" name = ~~ RET value BEGIN
   LAF DEBUGPRINT STR_VAR func = "rglobal" END
-  LAF init_globals RET filename = filename END
+  LAF init_globals STR_VAR filename RET filename = filename END
   OUTER_SPRINT value ""
   COPY_EXISTING ~%filename%.2DA~ ~override~
     COUNT_2DA_COLS cols
@@ -38,13 +42,13 @@ DEFINE_ACTION_FUNCTION rglobal STR_VAR name = ~~ RET value BEGIN
     END
   BUT_ONLY
   ACTION_IF "%value%" STR_EQ "" BEGIN
-    FAIL ~could not read value: %name%.~
+    PRINT ~could not read value: %name%.~
   END
 END
 
-DEFINE_ACTION_FUNCTION wglobal INT_VAR value = 0 STR_VAR name = ~~ BEGIN
+DEFINE_ACTION_FUNCTION wglobal INT_VAR value = 0 STR_VAR name = ~~ filename = "SG_GLOBALS"  BEGIN
   LAF DEBUGPRINT STR_VAR func = "wglobal" END
-  LAF init_globals RET filename = filename END
+  LAF init_globals STR_VAR filename  RET filename = filename END
   COPY_EXISTING ~%filename%.2DA~ ~override~
     set_value = 0
     COUNT_2DA_COLS cols

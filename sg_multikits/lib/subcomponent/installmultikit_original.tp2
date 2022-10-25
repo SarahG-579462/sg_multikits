@@ -1,0 +1,19 @@
+BACKUP ~sg_multikits/lib/subcomponent/backup~ 
+AUTHOR ~SadieGamer (SG),  sg2475962@gmail.com~ 
+VERSION ~v0.1~
+
+ALWAYS
+  COPY ~%MOD_FOLDER%/data~ ~override~
+  INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
+  
+  OUTER_SET DEBUG = 0
+  LAM GET_2DAS
+  ACTION_IF IS_AN_INT "%_N_PROMPT_TOTAL%" BEGIN
+    LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END
+  END ELSE BEGIN 
+    
+    LAF wglobal INT_VAR value = 0 - 1 STR_VAR name = "_N_PROMPT_TOTAL" END
+    OUTER_SET _N_PROMPT_TOTAL = 0 - 1
+  END
+  
+END
