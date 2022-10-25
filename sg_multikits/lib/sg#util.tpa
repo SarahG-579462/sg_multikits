@@ -5,27 +5,34 @@ ACTION_IF DEBUG == 1 BEGIN
 END
 END
 DEFINE_ACTION_FUNCTION init_globals STR_VAR filename = "SG_GLOBALS" RET filename BEGIN
-  ACTION_IF ! FILE_EXISTS_IN_GAME ~%filename%.2DA~ THEN BEGIN
-    <<<<<<<< empty
-    >>>>>>>>
-    COPY + empty ~override/%filename%.2DA~
-  END
+  //LAF DEBUGPRINT STR_VAR func = "init_globals" END
+  ACTION_IF ! FILE_EXISTS_IN_GAME ~override/%filename%.2DA~ THEN BEGIN
+    LAF DEBUGPRINT STR_VAR func = EVAL "init_globals: copying EMPTY2DA to %filename%" END
+    COPY ~%MOD_FOLDER%/data/EMPTY2DA.2DA~ ~override/%filename%.2DA~
+  END ELSE BEGIN LAF DEBUGPRINT STR_VAR func = EVAL "init_globals: %filename% already exists." END
+    END
 END
 
 DEFINE_ACTION_FUNCTION clear_globals STR_VAR filename = "SG_GLOBALS" BEGIN
+  LAF DEBUGPRINT STR_VAR func = "clear_globals" END
   DELETE ~override/%filename%.2DA~
 END
 
 DEFINE_ACTION_FUNCTION rglobal STR_VAR name = ~~ RET value BEGIN
+  LAF DEBUGPRINT STR_VAR func = "rglobal" END
   LAF init_globals RET filename = filename END
   OUTER_SPRINT value ""
-  COPY_EXISTING ~override/%filename%.2DA~ ~override~
-    READ_2DA_ENTRIES_NOW "globals" 1
-    FOR (i = 0; i < globals; ++i) BEGIN
-      READ_2DA_ENTRY_FORMER "globals" i 0 "currrow"
-      READ_2DA_ENTRY_FORMER "globals" i 1 "currval"
+  COPY_EXISTING ~%filename%.2DA~ ~override~
+    COUNT_2DA_COLS cols
+    COUNT_2DA_ROWS cols rows
+    READ_2DA_ENTRIES_NOW "globals" cols
+    FOR (row = 0; row < rows; ++row) BEGIN
+ 
+      READ_2DA_ENTRY_FORMER "globals" row 0 "currrow"
+      READ_2DA_ENTRY_FORMER "globals" row 1 "currval"
+      
       PATCH_IF(EVAL "%currrow%" STR_EQ EVAL "%name%") BEGIN
-        i = globals
+        row = rows
         value = EVAL "%currval%"
       END
     END
@@ -36,33 +43,37 @@ DEFINE_ACTION_FUNCTION rglobal STR_VAR name = ~~ RET value BEGIN
 END
 
 DEFINE_ACTION_FUNCTION wglobal INT_VAR value = 0 STR_VAR name = ~~ BEGIN
+  LAF DEBUGPRINT STR_VAR func = "wglobal" END
   LAF init_globals RET filename = filename END
-  COPY_EXISTING ~override/%filename%.2DA~ ~override~
-    READ_2DA_ENTRIES_NOW "globals" 1
+  COPY_EXISTING ~%filename%.2DA~ ~override~
     set_value = 0
-    FOR (i = 0; i < globals; ++i) BEGIN
-      READ_2DA_ENTRY_FORMER "globals" i 0 "currrow"
-      READ_2DA_ENTRY_FORMER "globals" i 1 "currval"
+    COUNT_2DA_COLS cols
+    COUNT_2DA_ROWS cols rows
+    READ_2DA_ENTRIES_NOW "globals" cols
+    FOR (row = 0; row < rows; ++row) BEGIN
+      READ_2DA_ENTRY_FORMER "globals" row 0 "currrow"
+      READ_2DA_ENTRY_FORMER "globals" row 1 "currval"
+      //PATCH_PRINT "wglobal %currrow%: %currval%"
       PATCH_IF (EVAL "%currrow%" STR_EQ EVAL "%name%") BEGIN
-        i = globals
-        SET_2DA_ENTRY i 1 value
+        //PATCH_PRINT "WRITE %row% %currrow% %name% %value% %filename% %DEST_FILESPEC% %cols%"
+        SET_2DA_ENTRY row 1 cols ~%value%~
+        row = rows
         set_value = 1
       END
     END
-    PATCH_IF NOT set_value BEGIN
-      INSERT_2DA_ROW globals 1 EVAL "%name% %value%"
-      set_value = 1
-    END
-  BUT_ONLY
+  
   ACTION_IF set_value = 0 BEGIN
-    FAIL ~could not write value: %name%~
+    LAF DEBUGPRINT STR_VAR func = EVAL "wglobal: appending %name% %value%" END
+    APPEND ~%filename%.2DA~ ~%name% %value% 0~
+    
   END
 END
 
 DEFINE_ACTION_FUNCTION increment_global STR_VAR name = ~~ RET valuenew BEGIN
-LAF rglobal STR_VAR name = EVAL "%name%" RET value = value END
-OUTER_SET valuenew = value + 1
-LAF wglobal INT_VAR value = valuenew STR_VAR name =  EVAL "%name%" END
+  LAF DEBUGPRINT STR_VAR func = "increment_global" END
+  LAF rglobal STR_VAR name = EVAL "%name%" RET value = value END
+  OUTER_SET valuenew = value + 1
+  LAF wglobal INT_VAR value = valuenew STR_VAR name =  EVAL "%name%" END
 END
 /**
  * Converts any decimal number into a hexadecimal number
@@ -73,6 +84,8 @@ DEFINE_ACTION_FUNCTION ~m7#int_to_hex_str~
 	RET
 		"hexstr"
 BEGIN
+  LAF DEBUGPRINT STR_VAR func = "m7#int_to_hex_str" END
+
 	ACTION_DEFINE_ARRAY "hexdigits" BEGIN
 		~0~ ~1~ ~2~ ~3~ ~4~ ~5~ ~6~ ~7~ ~8~ ~9~
 		~a~ ~b~ ~c~ ~d~ ~e~ ~f~
@@ -109,12 +122,14 @@ DEFINE_PATCH_FUNCTION bl_add_ability_to_clab
 	STR_VAR
 		ability = ~****~
 BEGIN
+
 	COUNT_2DA_COLS cols									//count columns
 	COUNT_2DA_ROWS cols rows							//count rows
 	READ_2DA_ENTRIES_NOW array cols						//store entries in array
   added = 0
 	FOR (row = 0; row < array; ++row) BEGIN				//loop through rows
 		READ_2DA_ENTRY_FORMER array row level value		//entry value
+    
 		PATCH_IF (~%value%~ STRING_EQUAL ~****~) BEGIN	//no value
 			SET_2DA_ENTRY row level cols ~%ability%~	//add ability
       added = 1

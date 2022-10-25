@@ -31,13 +31,21 @@ END
 DEFINE_ACTION_FUNCTION ~REINITIALIZE_UNIQUE_KITNAMES~ BEGIN
   ACTION_DEFINE_ARRAY files BEGIN END
   OUTER_SET i = 0
-  COPY_EXISTING_REGEXP ~get_unique_kitname_.*\.ids~ ~override~
-    SPRINT $files(i) EVAL ~%SOURCE_FILE%~
+  PRINT "1"
+  COPY_EXISTING_REGEXP GLOB ~.*\.IDS~ ~override~
+    PATCH_IF NOT ("%SOURCE_FILE%" STRING_MATCHES_REGEXP ~get_unique_kitname_.*~) BEGIN 
+      PATCH_PRINT "%SOURCE_FILE%"
+      SPRINT $files(i) EVAL ~%SOURCE_FILE%~
+      i += 1
+    END
   BUT_ONLY
+  PRINT "2"
   <<<<<<<< empty
   >>>>>>>>
   ACTION_PHP_EACH "files" AS "id" => "file" BEGIN
-    COPY + empty ~override/%file%~
+    
+    PRINT "%file%"
+    COPY ~empty~ ~override/%file%~
   END
 END
 DEFINE_PATCH_FUNCTION ~GET_UNIQUE_KITNAME~

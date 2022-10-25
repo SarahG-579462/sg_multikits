@@ -5,11 +5,13 @@ VERSION ~v0.1~
 ALWAYS
   COPY ~%MOD_FOLDER%/data~ ~override~
   INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
-  OUTER_SET DEBUG = 0
-  LAM GET_2DAS
+  
+  OUTER_SET DEBUG = 1
+  //LAM GET_2DAS
   ACTION_IF IS_AN_INT "%_N_PROMPT_TOTAL%" BEGIN
     LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END
   END ELSE BEGIN 
+    
     LAF wglobal INT_VAR value = 0 - 1 STR_VAR name = "_N_PROMPT_TOTAL" END
     OUTER_SET _N_PROMPT_TOTAL = 0 - 1
   END
@@ -23,6 +25,13 @@ LANGUAGE ~English~ ~english~ ~%MOD_FOLDER%/translations/english/setup.tra~
 //---------------------//
 //PROMPT AND BUILD KITS//
 //---------------------//
+BEGIN "TEST COMPONENT" DESIGNATED 1
+  LAF prompt_yesno STR_VAR prompt = "testing [y/n]" RET output END
+  LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END PRINT "_N_PROMPT_TOTAL: %_N_PROMPT_TOTAL%"
+  LAF prompt_yesno STR_VAR prompt = "testing [y/n]" RET output END
+  LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END PRINT "_N_PROMPT_TOTAL: %_N_PROMPT_TOTAL%"
+  LAF prompt_yesno STR_VAR prompt = "testing [y/n]" RET output END
+  LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END PRINT "_N_PROMPT_TOTAL: %_N_PROMPT_TOTAL%"
 
 BEGIN @100 DESIGNATED 100 // Build (allows to uninstall no_log_record)
 REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
