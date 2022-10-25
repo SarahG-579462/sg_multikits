@@ -172,30 +172,7 @@ RET output
     restrict12
     restrict23
 BEGIN
-/* 
-  ACTION_IF (restrict12 == 0) BEGIN
-    PRINT "How would you like to merge %filename% for %kit1% and %kit2%?
-[1] First  class priority (%kit1%, Kensai-Mage, Barbarian-Mage, etc.)
-[2] Second class priority (%kit2%)
-[3] Loosen   (like Fighter-Mage weapons)
-[4] Restrict (like Fighter-Cleric weapons)"
-    LAF prompt_integer
-      INT_VAR min = 1 max = 4
-      RET restrict12 = output
-    END
-  END
-  ACTION_IF (restrict23 == 0 AND FLAG_TRIPLECLASS) BEGIN
-    PRINT "How would you like to merge %filename% for %kit1%-%kit2% and %kit3%?
-[1] First-Second class priority (%kit1%-%ekit2%, Kensai-Mage, Barbarian-Mage, etc.)
-[2] Third class priority (%kit3%)
-[3] Loosen   (like Fighter-Mage weapons)
-[4] Restrict (like Fighter-Cleric weapons)"
-      LAF prompt_integer
-        INT_VAR min = 1 max = 4
-        RET restrict23 = output
-      END
-  END
- */
+
   OUTER_SPRINT row1str ""
   OUTER_SPRINT row2str ""
   OUTER_SPRINT row3str ""
@@ -305,6 +282,17 @@ DEFINE_ACTION_FUNCTION merge_item
   RET
     output
 BEGIN
+  LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "merge_item: %mergetype1% %mergetype2% 
+    valkit1  = %valkit1%
+    valkit2  = %valkit2%  
+    valkit3  = %valkit3%  
+    valcls1  = %valcls1%  
+    valcls2  = %valcls2%  
+    valcls3  = %valcls3%  
+    valmulti = %valmulti% 
+    tablename = %tablename%
+    colname   = %colname%  
+    " END
   ACTION_IF (mergetype1 == 6 AND mergetype2 == 6) BEGIN// need to do this one individually to get an even 33% distribution
     OUTER_SET random3 = RANDOM (0 2)
     ACTION_MATCH random3
@@ -331,13 +319,17 @@ BEGIN
       DEFAULT FAIL ~unknown restriction given: mergetype1 = %mergetype1%~
     END
     
-    ACTION_IF ((mergetype2 MODULO 9) != 0) BEGIN
+    ACTION_IF (mergetype2 != 0) AND
+              (mergetype2 != 9) BEGIN
       LAF merge_item 
         INT_VAR 
         mergetype1 = mergetype2 
         valkit1 = output 
         valkit2 = valkit3
         valcls1 valcls2 valcls3 valmulti
+        STR_VAR 
+        tablename
+        colname  
         RET 
         output = output 
       END
@@ -356,6 +348,8 @@ END
 
 DEFINE_ACTION_FUNCTION merge_loosen INT_VAR val1 = 0 val2 = 0 RET output BEGIN
   OUTER_SET output = ((val1 >  0) OR  (val2 >  0)) ? (val1 + val2 + (ABS (val1 - val2))) / 2 : 0
+  LAF DEBUGPRINT INT_VAR level = 3 STR_VAR func = EVAL "merge_loosen: %val1% X %val2% = %output%" END
+
 END
 
 DEFINE_ACTION_FUNCTION merge_restrict INT_VAR val1 = 0 val2 = 0 RET output BEGIN
@@ -381,14 +375,16 @@ valkit2 = 0 - 1
 STR_VAR colname = ""
 RET merge
 BEGIN
-  LAF DEBUGPRINT STR_VAR func = EVAL "merge_clswpbon: %colname%" END
+  LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "merge_clswpbon: %colname% %valkit1% %valkit2%" END
   OUTER_SET merge = 0
   ACTION_MATCH "%colname%"
-    WITH ~GETS_PROF_APR~    BEGIN PRINT "1" LAF merge_loosen   INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-         ~UNARMED_DIVISOR~  BEGIN PRINT "2" LAF merge_loosen   INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-         ~ZERO_SKILL_THAC0~ BEGIN PRINT "3" LAF merge_minima   INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-    DEFAULT PRINT "4" FAIL ~ERROR: BAD COLUMN GIVEN TO MERGE_CLSWPBON~
+    WITH ~GETS_PROF_APR~    BEGIN LAF merge_loosen   INT_VAR val1 = valkit1 val2 = valkit2 RET merge = output END END
+         ~UNARMED_DIVISOR~  BEGIN LAF merge_loosen   INT_VAR val1 = valkit1 val2 = valkit2 RET merge = output END END
+         ~ZERO_SKILL_THAC0~ BEGIN LAF merge_minima   INT_VAR val1 = valkit1 val2 = valkit2 RET merge = output END END
+    DEFAULT  FAIL ~ERROR: BAD COLUMN GIVEN TO MERGE_CLSWPBON~
   END
+  LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "merge_clswpbon: %colname% mergeval: %merge%" END
+
 END
 
 DEFINE_ACTION_FUNCTION merge_weapprof 
