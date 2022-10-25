@@ -381,7 +381,7 @@ valkit2 = 0 - 1
 STR_VAR colname = ""
 RET merge
 BEGIN
-  PRINT "%colname%"
+  LAF DEBUGPRINT STR_VAR func = EVAL "merge_clswpbon: %colname%" END
   OUTER_SET merge = 0
   ACTION_MATCH "%colname%"
     WITH ~GETS_PROF_APR~    BEGIN PRINT "1" LAF merge_loosen   INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END

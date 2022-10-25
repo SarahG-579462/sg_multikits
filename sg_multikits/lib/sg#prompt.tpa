@@ -222,41 +222,56 @@ BEGIN
   //grab the classes.
   LAF DEBUGPRINT STR_VAR func="PROMPT_CLASSES" END 
   ACTION_DEFINE_ARRAY USERCLASS BEGIN END
-  LAF prompt_class
-    RET_ARRAY USERCLASS = userclass
-  END
+  LAF list_class STR_VAR first_class = "" RET list numlisted RET_ARRAY classfilter  END
+  //choose list
+  OUTER_SET userclassnum = 0
+  OUTER_SPRINT _p @1020 // ~Choose class~
+  OUTER_SPRINT _p EVAL "%_p%
+%list%"
+  LAF prompt_integer INT_VAR min = 1 max = numlisted STR_VAR "prompt" = EVAL "%_p%" RET userclassnum = output END
+  OUTER_SPRINT class1 $classfilter("%userclassnum%")
+  LAF list_class STR_VAR first_class = EVAL "%class1%" RET list numlisted RET_ARRAY classfilter  END
+  //choose list
+  OUTER_SET userclassnum = 0
+  OUTER_SPRINT _p @1020 // ~Choose class~
+  OUTER_SPRINT _p EVAL "%_p%
+%list%"
+  LAF prompt_integer INT_VAR min = 1 max = numlisted STR_VAR "prompt" = EVAL "%_p%" RET userclassnum = output END
+  OUTER_SPRINT class2 $classfilter("%userclassnum%")
 
-  LAF prompt_class
-    STR_VAR first_class = $USERCLASS(1)
-    RET FLAG_TRIPLECLASS
-    RET_ARRAY USERCLASS = userclass
+  LAF parse_classes
+      STR_VAR 
+      class1 = EVAL "%class1%"
+      class2 = EVAL "%class2%"
+      RET 
+      FLAG_TRIPLECLASS
+      NUMCLASS
+      class1
+      class2
+      class3
+      MULTICLASSNAME
+      RET_ARRAY
+      USERCLASS
   END
   
-  OUTER_SET NUMCLASS = FLAG_TRIPLECLASS ? 3 : 2
-  LAM SORTCLASS
-  OUTER_SPRINT USERMULTICLASSNAME EVAL "%USERCLASS_1%_%USERCLASS_2%"
-  ACTION_IF FLAG_TRIPLECLASS BEGIN
-
-    OUTER_SPRINT USERMULTICLASSNAME EVAL "%USERMULTICLASSNAME%_%USERCLASS_3%"
-  END
   
-  PRINT "you have chosen %USERMULTICLASSNAME%."
+  PRINT "you have chosen %MULTICLASSNAME%."
 END
 
 DEFINE_ACTION_FUNCTION list_class
   STR_VAR first_class = ""
-  RET list
+  RET list numlisted
   RET_ARRAY classfilter
 BEGIN
   LAF DEBUGPRINT STR_VAR func="list_class" END 
 
-ACTION_DEFINE_ASSOCIATIVE_ARRAY classfilter BEGIN END
-ACTION_IF ("%first_class%" STRING_EQUAL "") BEGIN OUTER_SET num_prompts = 1 END ELSE BEGIN OUTER_SET num_prompts = 2 END
-OUTER_SPRINT "list" ""
-OUTER_SET numlisted = 0
-ACTION_PHP_EACH "multi_grid_rows" AS "classname" => "id" BEGIN
-  OUTER_SET check_filter = 0
-  ACTION_IF (num_prompts == 1) AND
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY classfilter BEGIN END
+  ACTION_IF ("%first_class%" STRING_EQUAL "") BEGIN OUTER_SET num_prompts = 1 END ELSE BEGIN OUTER_SET num_prompts = 2 END
+  OUTER_SPRINT "list" ""
+  OUTER_SET numlisted = 0
+  ACTION_PHP_EACH "multi_grid_rows" AS "classname" => "id" BEGIN
+    OUTER_SET check_filter = 0
+    ACTION_IF (num_prompts == 1) AND
             ("%classname%" STRING_MATCHES_REGEXP ~.*_.*~)
             BEGIN
     OUTER_SET check_filter = 1
@@ -349,84 +364,6 @@ ACTION_IF FLAG_TRIPLECLASS BEGIN
   OUTER_SPRINT MULTICLASSNAME EVAL "%MULTICLASSNAME%_%USERCLASS_3%"
 END
 END
-  
-  
 
 END
-DEFINE_ACTION_FUNCTION prompt_class
-  STR_VAR first_class = ~~
-  RET
-    FLAG_TRIPLECLASS
-  RET_ARRAY
-    userclass
-BEGIN
-  // list classes to choose
-  LAF DEBUGPRINT STR_VAR func="prompt_class" END 
-  ACTION_DEFINE_ARRAY classfilter BEGIN END
-  ACTION_DEFINE_ARRAY userclass BEGIN END
-  ACTION_IF ("%first_class%" STRING_EQUAL "") BEGIN OUTER_SET num_prompts = 1 END ELSE BEGIN OUTER_SET num_prompts = 2 END
-  OUTER_SPRINT "list" ""
-  OUTER_SET numlisted = 0
-  ACTION_PHP_EACH "multi_grid_rows" AS "classname" => "id" BEGIN
-    OUTER_SET check_filter = 0
-    ACTION_IF (num_prompts == 1) AND
-              ("%classname%" STRING_MATCHES_REGEXP ~.*_.*~)
-              BEGIN
-      OUTER_SET check_filter = 1
-    END
-    ACTION_IF (num_prompts == 2) BEGIN
-      OUTER_SET col = $multi_grid_cols("%classname%")
-      OUTER_SET row = $multi_grid_rows("%first_class%")
-      OUTER_SET check_filter = $multi_grid("%row%" "%col%")
-    END
-    ACTION_IF (check_filter) BEGIN
-      OUTER_SET col = EVAL $clastext_cols("MIXED")
-      OUTER_SET row = EVAL $clastext_rows("%classname%")
-      OUTER_SET numlisted += 1
-      ACTION_GET_STRREF $clastext("%row%" "%col%") "name"
-      OUTER_PATCH_SAVE name "%name%" BEGIN REPLACE_TEXTUALLY "<" "" REPLACE_TEXTUALLY "\(TYPE\)?\(SCHOOL\)?>" "" END
-      OUTER_SPRINT $classfilter("%numlisted%") "%classname%"
-			OUTER_SPRINT "list" "%list%[%numlisted%] %classname% - %name%
-"
-    END
-  END
-  //choose list
-  OUTER_SET userclassnum = 0
-  OUTER_SPRINT _p @1020 // ~Choose class~
-  
-  LAF prompt_integer
-    INT_VAR min = 1
-            max = numlisted
-    STR_VAR "prompt" = EVAL "%_p%
-%list%"
-    RET userclassnum = output
-  END
 
-  OUTER_SET FLAG_TRIPLECLASS = 0
-  OUTER_SPRINT chosenclass $classfilter("%userclassnum%")
-  ACTION_IF NOT ("%chosenclass%" STRING_MATCHES_REGEXP ~.*[_-].*~) BEGIN
-    //split chosenclass:
-    OUTER_PATCH_SAVE class1 "%chosenclass%" BEGIN REPLACE_TEXTUALLY ~[_-].*~ ~~ END
-    OUTER_PATCH_SAVE class2 "%chosenclass%" BEGIN REPLACE_TEXTUALLY ~.*[_-]~ ~~ END
-    PRINT ~class 1: %class1% class 2: %class2%~
-    /* LAF COMPARECLASSORDER
-      INT_VAR FLAG_TRIPLECLASS = 1
-      STR_VAR class1 = EVAL "%class1%"
-              class2 = EVAL "%class2%"
-      RET compare
-    END
-
-    ACTION_IF NOT compare BEGIN
-      OUTER_SPRINT tmp    "%class1%"
-      OUTER_SPRINT class1 "%class2%"
-      OUTER_SPRINT class2 "%tmp%"
-    END */
-    PRINT ~class 1: %class1% class 2: %class2%~
-    OUTER_SPRINT $userclass("%num_prompts%") "%class1%"
-    OUTER_SET num_prompts += 1
-    OUTER_SPRINT $userclass("%num_prompts%") "%class2%"
-    OUTER_SET FLAG_TRIPLECLASS = 1
-  END ELSE BEGIN
-    OUTER_SPRINT $userclass("%num_prompts%") "%chosenclass%"
-  END
-END

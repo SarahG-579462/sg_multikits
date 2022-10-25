@@ -7,7 +7,7 @@ ALWAYS
   INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
   
   OUTER_SET DEBUG = 1
-  //LAM GET_2DAS
+  LAM GET_2DAS
   ACTION_IF IS_AN_INT "%_N_PROMPT_TOTAL%" BEGIN
     LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END
   END ELSE BEGIN 

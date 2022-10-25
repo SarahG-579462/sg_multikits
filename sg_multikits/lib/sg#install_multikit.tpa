@@ -89,7 +89,7 @@ BEGIN
     WITH
       0
       BEGIN
-      OUTER_SPRINT classname "%USERMULTICLASSNAME%"
+      OUTER_SPRINT classname "%MULTICLASSNAME%"
       OUTER_SPRINT row $kitlist_rows("%classname%")
       END
       1 2 3
