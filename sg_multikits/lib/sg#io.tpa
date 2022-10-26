@@ -1,23 +1,23 @@
-ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST// ASSOCIATIONS: column-label, is_transposed,
+ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST// ASSOCIATIONS: column-label, is_transposed, mergetype, expected_columns
 BEGIN //prompt, one two, loosen, restrict, sum, random, SMART, SKIP
-  ~clastext~    => "0 0 0"//class strings
-  ~kitlist~     => "1 0 0"//kit   strings
-  ~kittable~    => "0 0 0"//kit races
-  ~clasweap~    => "0 0 9"//(old) weapon proficiencies
-  ~weapprof~    => "1 1 9"//weapon proficiencies
-  ~abclsmod~    => "0 0 3"//kit roll modifiers
-  ~abclasrq~    => "0 0 3"//kit roll requirements
-  ~alignmnt~    => "0 0 4"//kit alignments
-  ~backstab~    => "0 0 3"//kit backstab
-  ~sneakatt~    => "0 0 3"//kit sneak attack     (3e)
-  ~crippstr~    => "0 0 3"//kit crippling strike (3e)
-  ~thiefskl~    => "0 0 5"//kit thief skills available
-  ~thiefscl~    => "0 1 3"//kit thief skills per level (COLUMN-WISE)
-  ~clsrcreq~    => "0 0 4"//kit racial requirements
-  ~clascolr~    => "0 1 6"//kit colours (COLUMN-WISE)
-  ~clasiskl~    => "0 1 5"//kit starting scores (COLUMN-WISE)
-  ~clasthac~    => "0 1 5"//kit thaco bonus (COLUMN-WISE)
-  ~clswpbon~    => "0 0 8"//kit weapon bonuses (APR, UNARMED APR, UNPROFICIENT THAC0)
+  ~clastext~    => "0,0,0, 9,10"//class strings
+  ~kitlist~     => "1,0,0,10"//kit   strings
+  ~kittable~    => "0,0,0, 0"//kit races
+  ~clasweap~    => "0,0,9, 9"//(old) weapon proficiencies
+  ~weapprof~    => "1,1,9, 0"//weapon proficiencies
+  ~abclsmod~    => "0,0,3, 7"//kit roll modifiers
+  ~abclasrq~    => "0,0,3, 7"//kit roll requirements
+  ~alignmnt~    => "0,0,4,10"//kit alignments
+  ~backstab~    => "0,0,3, 0"//kit backstab
+  ~sneakatt~    => "0,0,3, 0"//kit sneak attack     (3e)
+  ~crippstr~    => "0,0,3, 0"//kit crippling strike (3e)
+  ~thiefskl~    => "0,0,5, 0"//kit thief skills available
+  ~thiefscl~    => "0,1,3, 0"//kit thief skills per level (COLUMN-WISE)
+  ~clsrcreq~    => "0,0,4, 0"//kit racial requirements
+  ~clascolr~    => "0,1,6, 0"//kit colours (COLUMN-WISE)
+  ~clasiskl~    => "0,1,5, 0"//kit starting scores (COLUMN-WISE)
+  ~clasthac~    => "0,1,5, 0"//kit thaco bonus (COLUMN-WISE)
+  ~clswpbon~    => "0,0,8, 4"//kit weapon bonuses (APR, UNARMED APR, UNPROFICIENT THAC0)
 END
 DEFINE_ACTION_FUNCTION backup_2da
 BEGIN
@@ -28,57 +28,58 @@ BEGIN
 END
 
 DEFINE_PATCH_FUNCTION read_2da_header_now
+  RET ncols
   RET_ARRAY
     output
-  BEGIN
-    SET numlines = 0
-    SET curroffset = 0
-    SPRINT currline ""
-    WHILE (numlines < 3) BEGIN
-      READ_BYTE  curroffset currbyte
-      READ_ASCII curroffset currstr ( 1 )
-      SET curroffset += 1
+BEGIN
+  SET numlines = 0
+  SET curroffset = 0
+  SPRINT currline ""
+  WHILE (numlines < 3) BEGIN
+  
+    READ_BYTE  curroffset currbyte
+    READ_ASCII curroffset currstr ( 1 )
+    SET curroffset += 1
+    PATCH_IF (currbyte == 0x0a) BEGIN
+      SET numlines += 1
+      SPRINT newline "%currline%"
+      SPRINT currline ""
+    END ELSE BEGIN
+      PATCH_IF (currbyte != 0x0d) BEGIN
       SPRINTF currline EVAL "%currline%%s" ("%currstr%")
-      PATCH_IF (currbyte == 0x0a) BEGIN
-        SET numlines += 1
-        SPRINT newline "%currline%"
-        SPRINT currline ""
       END
     END
-    // send to an ass-array
-    PATCH_DEFINE_ASSOCIATIVE_ARRAY output BEGIN END
-    SET curroffset = 0
-    SET numwords = 0
-    SPRINT currword ""
-    SET strlen = STRING_LENGTH "%newline%"
-    INNER_PATCH "%newline%" BEGIN
-      READ_ASCII curroffset laststr ELSE ~~ ( 1 )
-      READ_BYTE  curroffset lastbyte ELSE 0x20
-      SET curroffset += 1
-      FOR (i=0;i < "%strlen%";i += 1) BEGIN
-        READ_ASCII i currstr  ELSE ~~ ( 1 ) NULL
-        READ_BYTE  i currbyte ELSE 0x20
-
-        PATCH_IF (currbyte != 0x20  AND (i != "%strlen%" - 1)) BEGIN // if not a space, append.
-          SPRINTF currword EVAL "%currword%%s" ("%currstr%")
-        END
-        //if a space, check if last was a chr.
-        PATCH_IF (lastbyte != 0x20) AND ((currbyte == 0x20) OR (i == "%strlen%" - 1)) BEGIN
-          SET numwords += 1
-          SET $output("%currword%") = "%numwords%" //append word
-
-          //PATCH_PRINT "%currword%"
-          SPRINT currword "" //reset word
-        END
-        SET lastbyte = "%currbyte%"
-        SPRINT laststr "%currstr%"
+  END
+  // send to an ass-array
+  PATCH_DEFINE_ASSOCIATIVE_ARRAY output BEGIN END
+  SPRINT currword ""
+  ncols = 0
+  WHILE (STRING_LENGTH "%newline%" > 0) BEGIN
+    ncols += 1
+    INNER_PATCH_SAVE "currword" "%newline%" BEGIN
+      // REMOVE LEADING SPACES:
+      PATCH_IF NOT ("%newline%" STRING_CONTAINS_REGEXP "^ *") BEGIN
+        REPLACE_TEXTUALLY "^ *" ""
+      END
+      // REMOVE ANY TRAILING SPACES AND ANYTHING FOLLOWING
+      PATCH_IF NOT ("%newline%" STRING_CONTAINS_REGEXP " +.*$") BEGIN
+        REPLACE_TEXTUALLY " +.*$" ""
       END
     END
+    INNER_PATCH_SAVE newline "%newline%" BEGIN
+      REPLACE_TEXTUALLY "^ *[^ ]+ *" ""
+    END
+    PATCH_IF (STRING_LENGTH "%currword%") > 0 BEGIN
+      SET $output("%currword%") = "%ncols%"
+    END
+  END
+  
 END
 
 
 DEFINE_ACTION_FUNCTION 2da_to_asarray
   INT_VAR name_col = 0
+          ncols = 0
   STR_VAR filename = ~~
           fileto = ~override~
   RET_ARRAY
@@ -92,8 +93,21 @@ DEFINE_ACTION_FUNCTION 2da_to_asarray
     ACTION_DEFINE_ASSOCIATIVE_ARRAY "cols" BEGIN END
     ACTION_DEFINE_ARRAY "outtable2" BEGIN END
     COPY_EXISTING "%filename%" "%fileto%"
-
-      COUNT_2DA_COLS "ncols"
+      PATCH_IF ncols == 0 BEGIN
+        COUNT_2DA_COLS ncols
+      END ELSE BEGIN
+        COUNT_2DA_COLS ncolsreal
+        PATCH_IF ncolsreal != ncols BEGIN
+          PATCH_WARN ~%filename%: number of columns, %ncolsreal% does not match expected number of columns, %ncols%.~
+        END
+        PATCH_IF ncolsreal < ncols BEGIN
+          ncols = ncolsreal 
+        END
+      END
+      
+      LPF read_2da_header_now RET ncolscheck = ncols RET_ARRAY "cols" = output  END
+      
+      
       READ_2DA_ENTRIES_NOW "outtable" "%ncols%"
       SET nrows = "%outtable%"
       // dumb but weidu is weidu I guess
@@ -103,7 +117,6 @@ DEFINE_ACTION_FUNCTION 2da_to_asarray
           SPRINT $outtable2("%row%" "%col%") "%tmp%"
         END
       END
-      LPF read_2da_header_now RET_ARRAY "cols" = output END
 
       FOR (row = 0; row < "%nrows%"; row += 1) BEGIN
         SPRINT "name" $outtable2("%row%" "%name_col%")
@@ -114,40 +127,87 @@ DEFINE_ACTION_FUNCTION 2da_to_asarray
 
 END
 
-
-
+DEFINE_ACTION_FUNCTION parse_opts 
+STR_VAR opts = ""
+RET
+column_label
+is_transposed
+mergetype
+ncols
+BEGIN
+  OUTER_SET i = 0
+  OUTER_WHILE (STRING_LENGTH "%opts%" > 0) BEGIN
+    OUTER_SET i += 1
+    LAF DEBUGPRINT INT_VAR level = 3 STR_VAR func= EVAL "parse_opts: %opts%" END
+    OUTER_PATCH_SAVE EVAL "opt_%i%" "%opts%" BEGIN
+      PATCH_IF NOT ("%opts%" STRING_CONTAINS_REGEXP ",.*$") BEGIN
+        REPLACE_TEXTUALLY ",.*$" ""
+      END
+      REPLACE_TEXTUALLY " *" ""
+    END
+    OUTER_PATCH_SAVE opts "%opts%" BEGIN
+      REPLACE_TEXTUALLY "^ *[0-9]+ *,?" ""
+    END
+  END
+  OUTER_SET column_label    = (IS_AN_INT EVAL "%opt_1%") ? EVAL "%opt_1%" : 0
+  OUTER_SET is_transposed   = (IS_AN_INT EVAL "%opt_2%") ? EVAL "%opt_2%" : 0
+  OUTER_SET mergetype       = (IS_AN_INT EVAL "%opt_3%") ? EVAL "%opt_3%" : 0
+  OUTER_SET ncols_bg1       = (IS_AN_INT EVAL "%opt_4%") ? EVAL "%opt_4%" : 0
+  OUTER_SET ncols_bg2       = (IS_AN_INT EVAL "%opt_5%") ? EVAL "%opt_5%" : ncols_bg1
+  OUTER_SET ncols = (GAME_IS ~bgee~) ? ncols_bg1 : ncols_bg2
+END
 DEFINE_ACTION_MACRO GET_2DAS
 BEGIN
   //override 2das:
   
 
-  ACTION_PHP_EACH "2DALIST" AS "2da" => "col_id" BEGIN
+  ACTION_PHP_EACH "2DALIST" AS "2da" => "opts" BEGIN
+    LAF parse_opts STR_VAR opts = EVAL "%opts%" RET col_id = column_label ncols = ncols END
     
-    LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%col_id%" RET "col_id" = substring END
     LAF 2da_to_asarray
-      INT_VAR name_col = EVAL "%col_id%"
-      STR_VAR filename = ~%2da%.2da~
+      INT_VAR name_col = EVAL "%col_id%" ncols = ncols
+      STR_VAR filename = EVAL ~%2da%.2da~
       RET_ARRAY ~%2da%_rows~ = rows
                 ~%2da%_cols~ = cols
                 ~%2da%~ = outtable2
     END
-
+    ACTION_IF DEBUG >= 2 BEGIN
+      ACTION_PHP_EACH EVAL "%2da%_rows" AS "rowname" => "id" BEGIN
+        LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "GET_2DAS: %2da% ROW %rowname% => %id%" END
+      END                                                              
+    END                                                                
+     ACTION_IF DEBUG >= 2 BEGIN                                        
+      ACTION_PHP_EACH EVAL "%2da%_cols" AS "colname" => "id" BEGIN     
+        LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "GET_2DAS: %2da% COLUMN %colname% => %id%" END
+      END
+    END
   END
 
   ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST_MOD
   BEGIN
-    ~multi_grid~ => "0 0"
+    ~multi_grid~ => "0,0,0,0"
   END
 
-  ACTION_PHP_EACH "2DALIST_MOD" AS "2da" => "col_id" BEGIN
-    LAF SUBSTRING INT_VAR start = 0 length = 1 STR_VAR string = EVAL "%col_id%" RET "col_id" = substring END
+  ACTION_PHP_EACH "2DALIST_MOD" AS "2da" => "opts" BEGIN
+    LAF parse_opts STR_VAR opts = EVAL "%opts%" RET col_id = column_label ncols = ncols END
+    
     LAF 2da_to_asarray
-      INT_VAR name_col = EVAL "%col_id%"
-      STR_VAR filename = ~%MOD_FOLDER%/lib/%2da%.2da~
+      INT_VAR name_col = EVAL "%col_id%" ncols = ncols
+      STR_VAR filename = EVAL ~%MOD_FOLDER%/lib/%2da%.2da~
               fileto = ~~
       RET_ARRAY ~%2da%_rows~ = rows
                 ~%2da%_cols~ = cols
                 ~%2da%~ = outtable2
+    END
+    ACTION_IF DEBUG >= 2 BEGIN
+      ACTION_PHP_EACH EVAL "%2da%_rows" AS "rowname" => "id" BEGIN
+        LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "GET_2DAS: %2da% ROW %rowname% => %id%" END
+      END
+    END
+     ACTION_IF DEBUG >= 2 BEGIN
+      ACTION_PHP_EACH EVAL "%2da%_cols" AS "colname" => "id" BEGIN
+        LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "GET_2DAS: %2da% COLUMN %colname% => %id%" END
+      END
     END
   END
 
@@ -235,7 +295,7 @@ BEGIN
         
         valmulti
       STR_VAR
-        tablename
+        tablename = EVAL "%filename%"
         colname
       RET
         rowout = output

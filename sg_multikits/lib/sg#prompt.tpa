@@ -269,6 +269,7 @@ BEGIN
   ACTION_IF ("%first_class%" STRING_EQUAL "") BEGIN OUTER_SET num_prompts = 1 END ELSE BEGIN OUTER_SET num_prompts = 2 END
   OUTER_SPRINT "list" ""
   OUTER_SET numlisted = 0
+  
   ACTION_PHP_EACH "multi_grid_rows" AS "classname" => "id" BEGIN
     OUTER_SET check_filter = 0
     ACTION_IF (num_prompts == 1) AND

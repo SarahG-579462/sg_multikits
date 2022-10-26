@@ -1,12 +1,12 @@
 //1. TP2 FILE//
 BACKUP ~sg_multikits/backup~ 
 AUTHOR ~SadieGamer (SG),  sg2475962@gmail.com~ 
-VERSION ~v0.1~
+VERSION ~v0.14~
 ALWAYS
   COPY ~%MOD_FOLDER%/data~ ~override~
   INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
   
-  OUTER_SET DEBUG = 0
+  OUTER_SET DEBUG = 2
   LAM GET_2DAS
   ACTION_IF IS_AN_INT "%_N_PROMPT_TOTAL%" BEGIN
     LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END
@@ -54,7 +54,7 @@ OUTER_SPRINT info @201
 PRINT "%info%" 
 
 BEGIN @1000 
-NO_LOG_RECORD 
+//NO_LOG_RECORD 
 DESIGNATED 1000 // Build 
 REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
 REQUIRE_COMPONENT  ~setup-sg_multikits.tp2~ ~100~ ~Must have installed base component first.~
@@ -107,7 +107,7 @@ COPY + ~%backupdir_100%~ ~%backupdir_100%~
     END
     PATCH_PRINT "SOURCE_FILE %SOURCE_FILE% IS A BACKUP FILE... APPENDING WITH %newdir%/%equiv_1000%"
     PATCH_IF (FILE_EXISTS ~%newdir%/%equiv_1000%~) BEGIN
-      APPEND_FILE ~%newdir%/%equiv_1000%~
+      INSERT_FILE 0x0 ~%newdir%/%equiv_1000%~
     END
   END
   
