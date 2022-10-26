@@ -3,6 +3,7 @@ INCLUDE "%MOD_FOLDER%/lib/sg#io.tpa"
 INCLUDE "%MOD_FOLDER%/lib/sg#prompt.tpa" 
 INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa" 
 INCLUDE "%MOD_FOLDER%/lib/get_unique_kitname.tpa"
+INCLUDE "%MOD_FOLDER%/lib/2da_missing_cols.tpa"
 DEFINE_ACTION_FUNCTION multikit
   INT_VAR 
   _get2da = 1

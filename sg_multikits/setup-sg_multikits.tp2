@@ -43,6 +43,7 @@ INCLUDE "%MOD_FOLDER%/lib/sg#backstab.tpa"
 LAF backup_2da END
 LAF REINITIALIZE_UNIQUE_KITNAMES END
 LAF clabify_backstab END
+LAF fix_clastext END
 
 BEGIN @200 
 DESIGNATED 200 // PSEUDO-DRUID
