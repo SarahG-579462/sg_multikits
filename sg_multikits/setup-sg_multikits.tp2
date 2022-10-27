@@ -1,7 +1,7 @@
 //1. TP2 FILE//
 BACKUP ~sg_multikits/backup~ 
 AUTHOR ~SadieGamer (SG),  sg2475962@gmail.com~ 
-VERSION ~v0.14~
+VERSION ~v0.15~
 ALWAYS
   COPY ~%MOD_FOLDER%/data~ ~override~
   INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
@@ -78,7 +78,7 @@ OUTER_WHILE (createkit > 0) BEGIN
 END 
 //LAF backup_2da END
 
-OUTER_SPRINT backupdir_100 ~%MOD_FOLDER%/backup/100~
+/* OUTER_SPRINT backupdir_100 ~%MOD_FOLDER%/backup/100~
 OUTER_SPRINT backupdir_1000 ~%MOD_FOLDER%/backup/1000~
 OUTER_SET INSTALL_COUNT = 1
 OUTER_SPRINT newdir ~%backupdir_1000%/%INSTALL_COUNT%~
@@ -111,7 +111,7 @@ COPY + ~%backupdir_100%~ ~%backupdir_100%~
       INSERT_FILE 0x0 ~%newdir%/%equiv_1000%~
     END
   END
-  
+   */
   
 BEGIN @2000 
 DESIGNATED 2000 // Dynamic Kit Creation

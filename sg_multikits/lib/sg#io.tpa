@@ -219,15 +219,15 @@ INT_VAR
   column = 0
   restrict12 = 0
   restrict23 = 0
+  kit1   = 0
+  kit2   = 0
+  kit3   = 0
+  class1 = 0
+  class2 = 0
+  class3 = 0
+  multi  = 0
 STR_VAR
   filename = ~~
-  kit1   = ""
-  kit2   = ""
-  kit3   = ""
-  class1 = ""
-  class2 = ""
-  class3 = ""
-  multi  = ""
 RET output
     restrict12
     restrict23
@@ -260,31 +260,26 @@ BEGIN
   
   ACTION_PHP_EACH "%filename%_%mycol%" AS "colname" => "colnum" BEGIN
     ACTION_IF column BEGIN
-      OUTER_SET valkit1  = (IS_AN_INT EVAL "%rowkit1%") ? $"%filename%"("%colnum%" "%rowkit1%") : 0 - 1 
-      OUTER_SET valkit2  = (IS_AN_INT EVAL "%rowkit2%") ? $"%filename%"("%colnum%" "%rowkit2%") : 0 - 1 
-      OUTER_SET valkit3  = (IS_AN_INT EVAL "%rowkit3%") ? $"%filename%"("%colnum%" "%rowkit3%") : 0 - 1 
-
+      
       OUTER_SET valcls1  = (IS_AN_INT EVAL "%rowcls1%") ? $"%filename%"("%colnum%" "%rowcls1%") : 0 - 1 
       OUTER_SET valcls2  = (IS_AN_INT EVAL "%rowcls2%") ? $"%filename%"("%colnum%" "%rowcls2%") : 0 - 1 
       OUTER_SET valcls3  = (IS_AN_INT EVAL "%rowcls3%") ? $"%filename%"("%colnum%" "%rowcls3%") : 0 - 1 
-
+      OUTER_SET valkit1  = (IS_AN_INT EVAL "%rowkit1%") ? $"%filename%"("%colnum%" "%rowkit1%") : valcls1 
+      OUTER_SET valkit2  = (IS_AN_INT EVAL "%rowkit2%") ? $"%filename%"("%colnum%" "%rowkit2%") : valcls2 
+      OUTER_SET valkit3  = (IS_AN_INT EVAL "%rowkit3%") ? $"%filename%"("%colnum%" "%rowkit3%") : valcls3 
       OUTER_SET valmulti = (IS_AN_INT EVAL "%rowmulti%") ? $"%filename%"("%colnum%" "%rowmulti%") : 0 - 1 
     END ELSE BEGIN                    
-      OUTER_SET valkit1  = (IS_AN_INT EVAL "%rowkit1%") ? $"%filename%"("%rowkit1%" "%colnum%") : 0 - 1 
-      OUTER_SET valkit2  = (IS_AN_INT EVAL "%rowkit2%") ? $"%filename%"("%rowkit2%" "%colnum%") : 0 - 1 
-      OUTER_SET valkit3  = (IS_AN_INT EVAL "%rowkit3%") ? $"%filename%"("%rowkit3%" "%colnum%") : 0 - 1 
-      
       OUTER_SET valcls1  = (IS_AN_INT EVAL "%rowcls1%") ? $"%filename%"("%rowcls1%" "%colnum%") : 0 - 1 
       OUTER_SET valcls2  = (IS_AN_INT EVAL "%rowcls2%") ? $"%filename%"("%rowcls2%" "%colnum%") : 0 - 1 
       OUTER_SET valcls3  = (IS_AN_INT EVAL "%rowcls3%") ? $"%filename%"("%rowcls3%" "%colnum%") : 0 - 1 
-
+      OUTER_SET valkit1  = (IS_AN_INT EVAL "%rowkit1%") ? $"%filename%"("%rowkit1%" "%colnum%") : valcls1 
+      OUTER_SET valkit2  = (IS_AN_INT EVAL "%rowkit2%") ? $"%filename%"("%rowkit2%" "%colnum%") : valcls2
+      OUTER_SET valkit3  = (IS_AN_INT EVAL "%rowkit3%") ? $"%filename%"("%rowkit3%" "%colnum%") : valcls3 
       OUTER_SET valmulti = (IS_AN_INT EVAL "%rowmulti%") ? $"%filename%"("%rowmulti%" "%colnum%") : 0 - 1 
     END
     
     LAF merge_item 
       INT_VAR 
-        mergetype1 = restrict12 
-        mergetype2 = restrict23
         valkit1
         valkit2 
         valkit3
@@ -294,12 +289,19 @@ BEGIN
         valcls3
         
         valmulti
-      STR_VAR
-        tablename = EVAL "%filename%"
-        colname
       RET
-        rowout = output
+        rowout = merge
     END
+    
+    LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "merge_item: %restrict12% %restrict23% 
+    valcls1  = %valcls1%  valkit1  = %valkit1% 
+    valcls2  = %valcls2%  valkit2  = %valkit2% 
+    valcls3  = %valcls3%  valkit3  = %valkit3% 
+    valmulti = %valmulti% 
+    tablename = %filename%
+    colname   = %colname%  
+    output    = %rowout%
+    " END
     
     OUTER_SPRINT row1str "%row1str% %valkit1%"
     OUTER_SPRINT row2str "%row2str% %valkit2%"
@@ -324,173 +326,96 @@ BEGIN
   END
 END
 
-DEFINE_ACTION_FUNCTION merge_item 
-  INT_VAR 
-    mergetype1 = 0 
-    mergetype2 = 0
-    valkit1  = 0 - 1
-    valkit2  = 0 - 1
-    valkit3  = 0 - 1
-    valcls1  = 0 - 1
-    valcls2  = 0 - 1
-    valcls3  = 0 - 1
-    valmulti = 0 - 1
-
-  STR_VAR 
-    tablename = ""
-    colname   = ""
-  RET
-    output
-BEGIN
-  LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "merge_item: %mergetype1% %mergetype2% 
-    valkit1  = %valkit1%
-    valkit2  = %valkit2%  
-    valkit3  = %valkit3%  
-    valcls1  = %valcls1%  
-    valcls2  = %valcls2%  
-    valcls3  = %valcls3%  
-    valmulti = %valmulti% 
-    tablename = %tablename%
-    colname   = %colname%  
-    " END
-  ACTION_IF (mergetype1 == 6 AND mergetype2 == 6) BEGIN// need to do this one individually to get an even 33% distribution
-    OUTER_SET random3 = RANDOM (0 2)
-    ACTION_MATCH random3
-      WITH
-        0 BEGIN OUTER_SET output = valkit1 END
-        1 BEGIN OUTER_SET output = valkit2 END
-        2 BEGIN OUTER_SET output = valkit3 END
-        DEFAULT
-    END
-  END ELSE BEGIN
-    ACTION_MATCH mergetype1
-      WITH
-        1 BEGIN /* valkit1 priority*/  LAF merge_first    INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-        2 BEGIN /* valkit2 priority*/  LAF merge_second   INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-        3 BEGIN /* loosen like FM */   LAF merge_loosen   INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-        4 BEGIN /* restrict like C*/   LAF merge_restrict INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-        5 BEGIN /* sum of c1 & c2 */   LAF merge_sum      INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-        6 BEGIN /* randomize      */   LAF merge_random   INT_VAR val1 = valkit1 val2 = valkit2 RET output = output END END
-        7 BEGIN /* smart select   */ FAIL ~unimplemented: smart select~ END
-        8 BEGIN /* clswpbon~ */ LAF merge_clswpbon INT_VAR valkit1 valkit2 STR_VAR colname = EVAL "%colname%" RET output = merge END END
-        9 BEGIN LAF merge_weapprof INT_VAR valkit1 valkit2 valkit3 valcls1 valcls2 valcls3 valmulti
-                    RET output = merge END
-          END
-      DEFAULT FAIL ~unknown restriction given: mergetype1 = %mergetype1%~
-    END
-    
-    ACTION_IF (mergetype2 != 0) AND
-              (mergetype2 != 9) BEGIN
-      LAF merge_item 
-        INT_VAR 
-        mergetype1 = mergetype2 
-        valkit1 = output 
-        valkit2 = valkit3
-        valcls1 valcls2 valcls3 valmulti
-        STR_VAR 
-        tablename
-        colname  
-        RET 
-        output = output 
-      END
-    END
-  END
-  OUTER_SET output = (output < 0) ? 0 : output
-END
-
-DEFINE_ACTION_FUNCTION merge_first INT_VAR val1 = 0 val2 = 0 RET output BEGIN
-  OUTER_SET output = ((val1 >  0)                  ) ? (val1 + val2 + (ABS (val1 - val2))) / 2 : 0
-END
-
-DEFINE_ACTION_FUNCTION merge_second INT_VAR val1 = 0 val2 = 0 RET output BEGIN
-  OUTER_SET output = (                  (val2 >  0)) ? (val1 + val2 + (ABS (val1 - val2))) / 2 : 0
-END
-
-DEFINE_ACTION_FUNCTION merge_loosen INT_VAR val1 = 0 val2 = 0 RET output BEGIN
-  OUTER_SET output = ((val1 >  0) OR  (val2 >  0)) ? (val1 + val2 + (ABS (val1 - val2))) / 2 : 0
-  LAF DEBUGPRINT INT_VAR level = 3 STR_VAR func = EVAL "merge_loosen: %val1% X %val2% = %output%" END
-
-END
-
-DEFINE_ACTION_FUNCTION merge_restrict INT_VAR val1 = 0 val2 = 0 RET output BEGIN
-  OUTER_SET output = ((val1 >  0) AND (val2 >  0)) ? (val1 + val2 + (ABS (val1 - val2))) / 2 : 0
-END
-
-DEFINE_ACTION_FUNCTION merge_sum INT_VAR val1 = 0 val2 = 0 RET output BEGIN
-  OUTER_SET output = ((val1 >  0) AND (val2 >  0)) ? (val1 + val2) : (val1 + val2 + (ABS (val1 - val2))) / 2
-END
-
-DEFINE_ACTION_FUNCTION merge_random INT_VAR val1 = 0 val2 = 0 RET output BEGIN
-  OUTER_SET output = RANDOM (0 1) ? val1 : val2
-END
-
-DEFINE_ACTION_FUNCTION merge_minima INT_VAR val1 = 0 val2 = 0 RET output BEGIN
-  OUTER_SET output = ((val1 >  0) AND (val2 >  0)) ? (val1 + val2 - (ABS (val1 - val2))) / 2 : 0 - 1
-END
-
-DEFINE_ACTION_FUNCTION merge_clswpbon
-INT_VAR 
-valkit1 = 0 - 1
-valkit2 = 0 - 1
-STR_VAR colname = ""
-RET merge
-BEGIN
-  LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "merge_clswpbon: %colname% %valkit1% %valkit2%" END
-  OUTER_SET merge = 0
-  ACTION_MATCH "%colname%"
-    WITH ~GETS_PROF_APR~    BEGIN LAF merge_loosen   INT_VAR val1 = valkit1 val2 = valkit2 RET merge = output END END
-         ~UNARMED_DIVISOR~  BEGIN LAF merge_loosen   INT_VAR val1 = valkit1 val2 = valkit2 RET merge = output END END
-         ~ZERO_SKILL_THAC0~ BEGIN LAF merge_minima   INT_VAR val1 = valkit1 val2 = valkit2 RET merge = output END END
-    DEFAULT  FAIL ~ERROR: BAD COLUMN GIVEN TO MERGE_CLSWPBON~
-  END
-  LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "merge_clswpbon: %colname% mergeval: %merge%" END
-
-END
-
-DEFINE_ACTION_FUNCTION merge_weapprof 
+DEFINE_ACTION_FUNCTION merge_item
 INT_VAR //say FMC Kensai sling
-valkit1  = 0 - 1
-valkit2  = 0 - 1
-valkit3  = 0 - 1
-valcls1  = 0 - 1
-valcls2  = 0 - 1
-valcls3  = 0 - 1
-valmulti = 0 - 1
+valkit1  = 0
+valkit2  = 0
+valkit3  = 0
+valcls1  = 0
+valcls2  = 0
+valcls3  = 0
+valmulti = 0
 RET
 merge 
 BEGIN 
-  OUTER_SET diff_1 = (valkit1 >= 0) ? valcls1 - valkit1  : valcls1
-  OUTER_SET diff_2 = (valkit2 >= 0) ? valcls2 - valkit2  : valcls2
-  OUTER_SET diff_3 = (valkit3 >= 0) ? valcls3 - valkit3  : valcls3
-  //OUTER_SET m = ARGMIN(diff_%i%)
-  //OUTER_SET M = ARGMAX(diff_%i%)
-  OUTER_SET diffmin = 0
-  OUTER_SET diffmax = 0
-  OUTER_FOR (i = 1;i <= 3; i += 1) BEGIN
-    OUTER_SPRINT currcls EVAL "%valcls%i%%"
-    OUTER_SPRINT currkit EVAL "%valkit%i%%"
-    OUTER_SET EVAL "diff%i%" = "%currcls%" - "%currkit%"
-    ACTION_IF EVAL "%diff%i%%" <= diffmin BEGIN
-      OUTER_SET ind_min = i
-      OUTER_SET diffmin = EVAL "%diff%i%%"
-      OUTER_SET kitmin  = EVAL "%valkit%i%%"
-    END
+  OUTER_PATCH "dummy" BEGIN
     
-    ACTION_IF EVAL "%diff%i%%" >= diffmax BEGIN
-      OUTER_SET ind_max = i
-      OUTER_SET diffmax = EVAL "%diff%i%%"
-      OUTER_SET kitmax  = EVAL "%valkit%i%%"
+    PATCH_IF valmulti = 0 - 1 BEGIN
+      // DETERMINE MULTI FROM BASE
+      valmulti = (valkit1 >= 0) ? valkit1 :
+                 (valkit2 >= 0) ? valkit2 :
+                 (valkit3 >= 0) ? valkit3 :
+                 (valcls1 >= 0) ? valcls1 :
+                 (valcls2 >= 0) ? valcls2 :
+                 (valcls3 >= 0) ? valcls3 :
+                 0// do before changing e.g. for backstab table
+    valcls1 = (valcls1 >= 0) ? valcls1 : 0
+    valcls2 = (valcls2 >= 0) ? valcls2 : 0
+    valcls3 = (valcls3 >= 0) ? valcls3 : 0
+    valkit1 = (valkit1 >= 0) ? valkit1 : valcls1 
+    valkit2 = (valkit2 >= 0) ? valkit2 : valcls2 
+    valkit3 = (valkit3 >= 0) ? valkit3 : valcls3 
     END
+    // Assume multi given.
+    diff_1 = (valkit1 - valcls1)  //assume these are all given.
+    diff_2 = (valkit2 - valcls2)  //assume these are all given.
+    diff_3 = (valkit3 - valcls3)  //assume these are all given.
+    diffgain = 0
+    difflose = 0
+    FOR (i = 1;i <= 3; i += 1) BEGIN
+      PATCH_IF EVAL "%diff_%i%%" >= diffgain BEGIN
+        diffgain = EVAL "%diff_%i%%"
+        kitgain  = EVAL "%valkit%i%%"
+      END
+      PATCH_IF EVAL "%diff_%i%%" <= difflose BEGIN
+        difflose = EVAL "%diff_%i%%"
+        kitlose  = EVAL "%valkit%i%%"
+      END
+    END
+    merge = (difflose < 0) AND (kitlose < valmulti) ? kitlose :
+            (diffgain > 0) AND (kitgain > valmulti) ? kitgain : 
+            valmulti
+  END
+
+
+  LAF DEBUGPRINT INT_VAR level = 3 STR_VAR func = EVAL ~merge_item: 
+    valcls1   = %valcls1% valkit1   = %valkit1% diff_1 = %diff_1%
+    valcls2   = %valcls2% valkit2   = %valkit2% diff_2 = %diff_2%
+    valcls3   = %valcls3% valkit3   = %valkit3% diff_3 = %diff_3%
+    valmulti  = %valmulti%
+    diffgain = %diffgain% kitgain = %kitgain%
+    difflose = %difflose% kitlose = %kitlose%
+    merge = %merge%
+~ END
+
+END 
+
+/* DEFINE_ACTION_FUNCTION merge_clab 
+INT_VAR
+STR_VAR
+clabkit1 = "" clabcls1 = ""
+clabkit2 = "" clabcls2 = ""
+clabkit3 = "" clabcls3 = ""
+clabmerge = ""
+BEGIN
+  //for each level, 
+  LAF merge_clablevel STR_VAR
+    clabkit1 = "" clabcls1 = ""
+    clabkit2 = "" clabcls2 = ""
+    clabkit3 = "" clabcls3 = ""
+    clabmerge = ""
   END
   
-  OUTER_SET merge = EVAL "%valmulti%"
-  // if ANY diff restricts, i.e. is positive, choose that restriction.
-  ACTION_IF diffmax > 0 BEGIN // i.e. a kit restricts
-    OUTER_SET merge = merge > kitmax ? kitmax : merge // take the heaviest restriction, OR multi, if it is lower.
-  END ELSE BEGIN
-    // otherwise, if a kit gives a bonus prof, give that bonus
-    ACTION_IF diffmin < 0 BEGIN // 
-      OUTER_SET merge = merge < kitmin ? kitmin : merge
-    END
-  END
-END 
+END
+
+DEFINE_ACTION_FUNCTION merge_clablevel
+INT_VAR
+STR_VAR
+clabkit1 = "" clabcls1 = ""
+clabkit2 = "" clabcls2 = ""
+clabkit3 = "" clabcls3 = ""
+clabmerge = ""
+BEGIN
+  COPY_EXISTING ~clab~ ~override~
+    clab_rowlevel = 
+END */
