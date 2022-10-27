@@ -390,32 +390,89 @@ BEGIN
 
 END 
 
-/* DEFINE_ACTION_FUNCTION merge_clab 
-INT_VAR
-STR_VAR
-clabkit1 = "" clabcls1 = ""
-clabkit2 = "" clabcls2 = ""
-clabkit3 = "" clabcls3 = ""
-clabmerge = ""
+// returns SORTED array of abilities at a given level
+DEFINE_ACTION_FUNCTION get_clab_level
+  INT_VAR level = 1
+  STR_VAR clab  = ""
+  RET numabil levels
+  RET_ARRAY abilities
 BEGIN
-  //for each level, 
-  LAF merge_clablevel STR_VAR
-    clabkit1 = "" clabcls1 = ""
-    clabkit2 = "" clabcls2 = ""
-    clabkit3 = "" clabcls3 = ""
-    clabmerge = ""
+  ACTION_IF ! FILE_EXISTS_IN_GAME "%clab%" BEGIN FAIL ~clab <%clab%> does not exist~ END
+  ACTION_IF level <= 1 BEGIN FAIL ~level <%level%> is too low~ END
+  COPY_EXISTING "%clab%"
+    SET numabil = 0
+    COUNT_2DA_COLS levels
+    READ_2DA_ENTRIES_NOW array levels
+    FOR (row = 0; row < array; ++row) BEGIN
+      READ_2DA_ENTRY_FORMER array row level ability
+      PATCH_IF NOT (~%ability%~ STRING_EQUAL ~****~) BEGIN
+        SPRINT $abilities(numabil) ~%ability%~
+        numabil += 1
+      END
+    END
+  BUT_ONLY
+  OUTER_PATCH "" BEGIN
+    SPRINT sort_array_name abilities
+    SET sort_size    = numabil
+    SET sort_numeric = 0
+    SET sort_case    = 0
+    LPM SORT_ARRAY
   END
-  
 END
 
-DEFINE_ACTION_FUNCTION merge_clablevel
-INT_VAR
-STR_VAR
-clabkit1 = "" clabcls1 = ""
-clabkit2 = "" clabcls2 = ""
-clabkit3 = "" clabcls3 = ""
-clabmerge = ""
+DEFINE_ACTION_FUNCTION merge_clab_level
+  INT_VAR level = 1
+  STR_VAR
+  clabkit1 clabcls1
+  clabkit2 clabcls2
+  clabkit3 clabcls3
+  RET levels
+  RET_ARRAY 
+  abmerge
 BEGIN
-  COPY_EXISTING ~clab~ ~override~
-    clab_rowlevel = 
-END */
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY levels BEGIN END
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY numabils BEGIN END
+  
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY clabs  BEGIN 
+    kit1 => "%clabkit1%" cls1 => "%clabcls1%"
+    kit2 => "%clabkit2%" cls2 => "%clabcls2%"
+    kit3 => "%clabkit3%" cls3 => "%clabcls3%"
+  END 
+  ACTION_PHP_EACH "clabs" AS "name" => "clabtable"
+    LAF get_clab_level INT_VAR level STR_VAR clab = EVAL "%clabtable%" RET $levels(EVAL "%name%") = levels $numabils(EVAL "%name%") = numabils RET_ARRAY EVAL "abils_%name%" = abilities END
+  END
+  
+  OUTER_PATCH "" BEGIN
+    numabmerge = 0
+    not_done_merging = 1
+    PATCH_DEFINE_ASSOCIATIVE_ARRAY  ind_array  BEGIN kit1 => 0 cls1 => 0
+                                                     kit2 => 0 cls2 => 0 
+                                                     kit3 => 0 cls3 => 0 END
+    WHILE NOT done_merging BEGIN
+      SPRINT MIN_arrayname ind_array
+      LPM MIN // returns MIN_key, MIN_value
+      
+      curr_abil = $"abils_%MIN_key%"("%MIN_value%")
+      PHP_EACH "ind_array" AS "name" => "ind" BEGIN
+        SPRINT abil EVAL "abils_%name%_ind_array_%name%"
+        EVAL "val%name%" = ("%abil%" STRING_EQUAL "%curr_abil%")
+        EVAL "ind_array_%name%" =  EVAL "val%name%"  ? EVAL "ind_array_%name%" + 1 : EVAL "ind_array_%name%"
+        not_done_merging = ( EVAL "ind_array_%name%" < EVAL "numabils_%name%") AND not_done_merging
+      END
+      
+      LPF merge_item
+        INT_VAR valkit1      valkit2      valkit3      valcls1      valcls2      valcls3      valmulti = 0
+        RET merge
+      END
+      
+      PATCH_IF merge BEGIN
+        $abmerge(numabmerge) = curr_abil
+        numabmerge += 1
+      END ELSE BEGIN
+        //skip
+      END
+      
+    END 
+  END
+END
+

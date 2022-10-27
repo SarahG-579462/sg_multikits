@@ -116,6 +116,82 @@ BEGIN
 END 
 
 
+/** a7#SORT_ARRAY (thanks argent77)
+ * This patch macro sorts an array lexicographically or numerically.
+ * Parameters:
+ * INT_VAR sort_size        (Optional) Number of elements in the array. Specify negative size to 
+ *                                     perform auto-detection. (Default: Auto-detect size)
+ * INT_VAR sort_reverse     (Optional) Set to zero to sort in ascending order. Set to non-zero to 
+ *                                     sort in descending order. (Default: Sort in ascending order)
+ * INT_VAR sort_numeric     (Optional) Set to zero to sort array elements lexicographically. Set 
+ *                                     to non-zero to sort numerically. (Default: Sort lexicographically)
+ * INT_VAR sort_case        (Optional) Set to zero to ignore case. Set to non-zero to sort case-sensitive.
+ *                                     Ignored when sorting numerically. (Default: Ignore case)
+ * STR_VAR sort_array_name  (Mandatory) The array's base name.
+ */
+DEFINE_PATCH_MACRO SORT_ARRAY
+BEGIN
+  LOCAL_SET idx = 0 LOCAL_SET i = 0 LOCAL_SET j = 0
+  LOCAL_SET v1 = 0 LOCAL_SET v2 = 0
+  LOCAL_SPRINT s1 ~~ LOCAL_SPRINT s2 ~~
+  LOCAL_SET c = VARIABLE_IS_SET ~sort_case~ ? sort_case : 0
+  LOCAL_SET n = VARIABLE_IS_SET ~sort_numeric~ ? sort_numeric : 0
+  LOCAL_SET r = VARIABLE_IS_SET ~sort_reverse~ ? sort_reverse : 0
+  LOCAL_SET s = VARIABLE_IS_SET ~sort_size~ ? sort_size : "-1"
+
+  PATCH_IF (NOT ~%sort_array_name%~ STR_EQ ~~) BEGIN
+    // Auto-detect array size
+    PATCH_IF (s < 0) BEGIN
+      SET idx = 0
+      WHILE (idx != "-1") BEGIN
+        PATCH_IF (VARIABLE_IS_SET EVAL ~%sort_array_name%_%idx%~) BEGIN
+          SET idx += 1
+        END ELSE BEGIN
+          SET s = idx
+          SET idx = "-1"
+        END
+      END
+    END
+
+    // Sort array using "Selection Sort" algorithm
+    FOR (j = 0; j < s - 1; ++j) BEGIN
+      // Find and mark index of lowest/highest value in remaining sublist
+      SET idx = j
+      PATCH_IF (n) BEGIN SET v1 = EVAL ~%sort_array_name%_%idx%~ END ELSE BEGIN TEXT_SPRINT s1 EVAL ~%%sort_array_name%_%idx%%~ END
+      FOR (i = j + 1; i < s; ++i) BEGIN
+        PATCH_IF (n) BEGIN SET v2 = EVAL ~%sort_array_name%_%i%~ END ELSE BEGIN TEXT_SPRINT s2 EVAL ~%%sort_array_name%_%i%%~ END
+        PATCH_IF (n && (r && v2 > v1) || (NOT r && v2 < v1)) ||
+                 (NOT n && (r && c && ~%s1%~ STRING_COMPARE ~%s2%~ < 0) || 
+                           (r && NOT c && ~%s1%~ STRING_COMPARE_CASE ~%s2%~ < 0) ||
+                           (NOT r && c && ~%s1%~ STRING_COMPARE ~%s2%~ > 0) ||
+                           (NOT r && NOT c && ~%s1%~ STRING_COMPARE_CASE ~%s2%~ > 0)) BEGIN
+          SET idx = i
+          PATCH_IF (n) BEGIN SET v1 = EVAL ~%sort_array_name%_%idx%~ END ELSE BEGIN TEXT_SPRINT s1 EVAL ~%%sort_array_name%_%idx%%~ END
+        END
+      END
+
+      // Swap values if needed
+      PATCH_IF (idx != j) BEGIN
+        PATCH_IF (n) BEGIN
+          SET v1 = EVAL ~%sort_array_name%_%idx%~
+          SET EVAL ~%sort_array_name%_%idx%~ = EVAL ~%sort_array_name%_%j%~
+          SET EVAL ~%sort_array_name%_%j%~ = v1
+        END ELSE BEGIN
+          TEXT_SPRINT s1 EVAL ~%%sort_array_name%_%idx%%~
+          TEXT_SPRINT EVAL ~%sort_array_name%_%idx%~ EVAL ~%%sort_array_name%_%j%%~
+          TEXT_SPRINT EVAL ~%sort_array_name%_%j%~ ~%s1%~
+        END
+      END
+    END
+  END
+END
+
+/** Action macro for sorting arrays. */
+DEFINE_ACTION_MACRO SORT_ARRAY
+BEGIN
+  OUTER_PATCH ~~ BEGIN LPM SORT_ARRAY END
+END 
+
 DEFINE_PATCH_FUNCTION bl_add_ability_to_clab
 	INT_VAR
 		level = 1
