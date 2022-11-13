@@ -1,25 +1,25 @@
 
-DEFINE_ACTION_FUNCTION DEBUGPRINT INT_VAR level = 1 STR_VAR func = "DEBUGPRINT" BEGIN 
-ACTION_IF DEBUG >= level BEGIN
-  PRINT "ENTERING FUNCTION: %func%"
+DEFINE_ACTION_FUNCTION DEBUGPRINT INT_VAR SEVERITY = 1 STR_VAR MESSAGE = "DEBUGPRINT" BEGIN 
+ACTION_IF DEBUG >= SEVERITY BEGIN
+  PRINT "DEBUG%SEVERITY%: %MESSAGE%"
 END
 END
 DEFINE_ACTION_FUNCTION init_globals STR_VAR filename = "SG_GLOBALS" RET filename BEGIN
   //LAF DEBUGPRINT STR_VAR func = "init_globals" END
   ACTION_IF ! FILE_EXISTS_IN_GAME ~override/%filename%.2DA~ THEN BEGIN
-    LAF DEBUGPRINT STR_VAR func = EVAL "init_globals: copying EMPTY2DA to %filename%" END
+    LAF DEBUGPRINT STR_VAR MESSAGE = EVAL "init_globals: copying EMPTY2DA to %filename%" END
     COPY ~%MOD_FOLDER%/data/EMPTY2DA.2DA~ ~override/%filename%.2DA~
   END ELSE BEGIN LAF DEBUGPRINT STR_VAR func = EVAL "init_globals: %filename% already exists." END
     END
 END
 
 DEFINE_ACTION_FUNCTION clear_globals STR_VAR filename = "SG_GLOBALS" BEGIN
-  LAF DEBUGPRINT STR_VAR func = "clear_globals" END
+  LAF DEBUGPRINT STR_VAR MESSAGE = "clear_globals" END
   DELETE ~override/%filename%.2DA~
 END
 
 DEFINE_ACTION_FUNCTION rglobal STR_VAR name = ~~ RET value BEGIN
-  LAF DEBUGPRINT STR_VAR func = "rglobal" END
+  LAF DEBUGPRINT STR_VAR MESSAGE = "rglobal" END
   LAF init_globals RET filename = filename END
   OUTER_SPRINT value ""
   COPY_EXISTING ~%filename%.2DA~ ~override~
@@ -43,7 +43,7 @@ DEFINE_ACTION_FUNCTION rglobal STR_VAR name = ~~ RET value BEGIN
 END
 
 DEFINE_ACTION_FUNCTION wglobal INT_VAR value = 0 STR_VAR name = ~~ BEGIN
-  LAF DEBUGPRINT STR_VAR func = "wglobal" END
+  LAF DEBUGPRINT STR_VAR MESSAGE = "wglobal" END
   LAF init_globals RET filename = filename END
   COPY_EXISTING ~%filename%.2DA~ ~override~
     set_value = 0
@@ -63,14 +63,14 @@ DEFINE_ACTION_FUNCTION wglobal INT_VAR value = 0 STR_VAR name = ~~ BEGIN
     END
   
   ACTION_IF set_value = 0 BEGIN
-    LAF DEBUGPRINT STR_VAR func = EVAL "wglobal: appending %name% %value%" END
+    LAF DEBUGPRINT STR_VAR MESSAGE = EVAL "wglobal: appending %name% %value%" END
     APPEND ~%filename%.2DA~ ~%name% %value% 0~
     
   END
 END
 
 DEFINE_ACTION_FUNCTION increment_global STR_VAR name = ~~ RET valuenew BEGIN
-  LAF DEBUGPRINT STR_VAR func = "increment_global" END
+  LAF DEBUGPRINT STR_VAR MESSAGE = "increment_global" END
   LAF rglobal STR_VAR name = EVAL "%name%" RET value = value END
   OUTER_SET valuenew = value + 1
   LAF wglobal INT_VAR value = valuenew STR_VAR name =  EVAL "%name%" END
@@ -84,7 +84,7 @@ DEFINE_ACTION_FUNCTION ~m7#int_to_hex_str~
 	RET
 		"hexstr"
 BEGIN
-  LAF DEBUGPRINT STR_VAR func = "m7#int_to_hex_str" END
+  LAF DEBUGPRINT STR_VAR MESSAGE = "m7#int_to_hex_str" END
 
 	ACTION_DEFINE_ARRAY "hexdigits" BEGIN
 		~0~ ~1~ ~2~ ~3~ ~4~ ~5~ ~6~ ~7~ ~8~ ~9~

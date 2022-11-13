@@ -206,32 +206,6 @@ DEFINE_ACTION_FUNCTION build_multikit
 BEGIN
   OUTER_SPRINT MODPREFIX ~SG~
 
-  /* LAF merge_2da
-    INT_VAR 
-    STR_VAR
-      filename = ~clasweap~
-      merge1   = EVAL ~%userkitname_1%~
-      merge2   = EVAL ~%userkitname_2%~
-      merge3   = EVAL ~%userkitname_3%~
-      
-    RET kitclasweap = output
-        restrict12cw = restrict12
-        restrict23cw = restrict23
-  END
-
-  LAF merge_2da
-    INT_VAR
-      column = 1
-      restrict12 = "%restrict12cw%"
-      restrict23 = "%restrict23cw%"
-    STR_VAR
-      filename = ~weapprof~
-      merge1   = EVAL ~%userkitname_1%~
-      merge2   = EVAL ~%userkitname_2%~
-      merge3   = EVAL ~%userkitname_3%~
-    RET kitweapprof = output
-  END */
-
 
   ACTION_PHP_EACH "2DALIST" AS "2da" => "params" BEGIN
     LAF SUBSTRING INT_VAR start = 4 length = 1 STR_VAR string = EVAL "%params%" RET param_merge = substring END
@@ -296,37 +270,49 @@ BEGIN
   END
 
   PRINT "
-%userkitunusable_1%
-%userkitunusable_2%
-%userkitunusable_3%
+%userkitunusable_1% %pre_1%
+%userkitunusable_2% %pre_2%
+%userkitunusable_3% %pre_3%
 %kitunusab% = %byte_new%"
-  OUTER_SPRINT clab_base_d ""
-  OUTER_SPRINT clab_base_f ""
-  OUTER_SPRINT clab_base_m ""
-  OUTER_SPRINT clab_base_p ""
-  OUTER_SPRINT clab_base_r ""
-  OUTER_SPRINT clab_base_t ""
-
   OUTER_FOR (i = 1; i <= STRING_LENGTH "%multiprefix%"; i += 1) BEGIN
-    OUTER_SPRINT clab EVAL "%userkitclab_%i%%"
     ACTION_MATCH EVAL "%pre_%i%%"
       WITH
-        ~D~ BEGIN OUTER_SPRINT clab_base_d EVAL "%clab%" END
-        ~F~ BEGIN OUTER_SPRINT clab_base_f EVAL "%clab%" END
-        ~M~ BEGIN OUTER_SPRINT clab_base_m EVAL "%clab%" END
-        ~C~ BEGIN OUTER_SPRINT clab_base_p EVAL "%clab%" END
-        ~R~ BEGIN OUTER_SPRINT clab_base_r EVAL "%clab%" END
-        ~T~ BEGIN OUTER_SPRINT clab_base_t EVAL "%clab%" END
+        ~D~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABDR01~ END
+        ~F~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABFI01~ END
+        ~M~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABMA01~ END
+        ~C~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABPR01~ END
+        ~R~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABRN01~ END
+        ~T~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABTH01~ END
       DEFAULT
         FAIL ~UNKNOWN MULTICLASS PREFIX~
     END
   END
-  PRINT "clab_base_d  = %clab_base_d%
-clab_base_f  = %clab_base_f%
-clab_base_m  = %clab_base_m%
-clab_base_p  = %clab_base_p%
-clab_base_r  = %clab_base_r%
-clab_base_t  = %clab_base_t%"
+  LAF GET_UNIQUE_FILE_NAME STR_VAR extension = "2DA" base = "CLAB%kitname%" RET newclab = filename END
+  OUTER_PATCH_SAVE newclab "%newclab%" BEGIN REPLACE_TEXTUALLY CASE_INSENSITIVE EXACT_MATCH ~__~ ~SGCL~ END
+  ACTION_IF FLAG_TRIPLECLASS BEGIN
+    LAF merge_clab 
+      STR_VAR
+      clabkit1  = EVAL "%userkitclab_1%" clabcls1  pre_1 = EVAL "%pre_1%" //use no-prefix for base class
+      clabkit2  = EVAL "%userkitclab_2%" clabcls2  pre_2 = EVAL "%pre_2%" 
+      clabkit3  = EVAL "%userkitclab_3%" clabcls3  pre_3 = EVAL "%pre_3%" 
+      clabmerge = EVAL "%newclab%"
+    END 
+  END
+  ELSE BEGIN
+    LAF merge_clab 
+      STR_VAR
+      clabkit1  = EVAL "%userkitclab_1%" clabcls1  pre_1 = EVAL "%pre_1%" //use no-prefix for base class
+      clabkit2  = EVAL "%userkitclab_2%" clabcls2  pre_2 = EVAL "%pre_2%" 
+      clabmerge = EVAL "%newclab%"
+    END 
+  END
+  
+  PRINT "CLABFILES:
+      clabkit1  = %userkitclab_1% clabcls1 = %clabcls1%
+      clabkit2  = %userkitclab_2% clabcls2 = %clabcls2%
+      clabkit3  = %userkitclab_3% clabcls3 = %clabcls3%
+      clabmerge = %newclab%
+"
 
   OUTER_SPRINT multiclassid $userclassid(0)
   LAF ADD_KIT_EX
@@ -356,15 +342,15 @@ clab_base_t  = %clab_base_t%"
       dualclas      = EVAL ~~
       luabbr        = EVAL ~~
       stweap        = EVAL ~~
-      clab_path     = EVAL ~~
+      clab_path     = EVAL ~%newclab%~
       kittable      = EVAL ~%userkittable%~
-      base_class    = EVAL ~~
-      clab_base_d   = EVAL ~%clab_base_d%~
-      clab_base_f   = EVAL ~%clab_base_f%~
-      clab_base_m   = EVAL ~%clab_base_m%~
-      clab_base_p   = EVAL ~%clab_base_p%~
-      clab_base_r   = EVAL ~%clab_base_r%~
-      clab_base_t   = EVAL ~%clab_base_t%~
+      base_class    = EVAL ~%pre_1%~
+      clab_base_d   = EVAL ~~
+      clab_base_f   = EVAL ~~
+      clab_base_m   = EVAL ~~
+      clab_base_p   = EVAL ~~
+      clab_base_r   = EVAL ~~
+      clab_base_t   = EVAL ~~
       // EE-specific arguments
       clsrcreq      = EVAL ~%kitname%%kitclsrcreq%~
       clswpbon      = EVAL ~%kitname%%kitclswpbon%~

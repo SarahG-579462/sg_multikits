@@ -173,12 +173,12 @@ BEGIN
     END
     ACTION_IF DEBUG >= 2 BEGIN
       ACTION_PHP_EACH EVAL "%2da%_rows" AS "rowname" => "id" BEGIN
-        LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "GET_2DAS: %2da% ROW %rowname% => %id%" END
+        LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL "GET_2DAS: %2da% ROW %rowname% => %id%" END
       END                                                              
     END                                                                
      ACTION_IF DEBUG >= 2 BEGIN                                        
       ACTION_PHP_EACH EVAL "%2da%_cols" AS "colname" => "id" BEGIN     
-        LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "GET_2DAS: %2da% COLUMN %colname% => %id%" END
+        LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL "GET_2DAS: %2da% COLUMN %colname% => %id%" END
       END
     END
   END
@@ -201,12 +201,12 @@ BEGIN
     END
     ACTION_IF DEBUG >= 2 BEGIN
       ACTION_PHP_EACH EVAL "%2da%_rows" AS "rowname" => "id" BEGIN
-        LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "GET_2DAS: %2da% ROW %rowname% => %id%" END
+        LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL "GET_2DAS: %2da% ROW %rowname% => %id%" END
       END
     END
      ACTION_IF DEBUG >= 2 BEGIN
       ACTION_PHP_EACH EVAL "%2da%_cols" AS "colname" => "id" BEGIN
-        LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "GET_2DAS: %2da% COLUMN %colname% => %id%" END
+        LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL "GET_2DAS: %2da% COLUMN %colname% => %id%" END
       END
     END
   END
@@ -293,7 +293,7 @@ BEGIN
         rowout = merge
     END
     
-    LAF DEBUGPRINT INT_VAR level = 2 STR_VAR func = EVAL "merge_item: %restrict12% %restrict23% 
+    LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL "merge_item: %restrict12% %restrict23% 
     valcls1  = %valcls1%  valkit1  = %valkit1% 
     valcls2  = %valcls2%  valkit2  = %valkit2% 
     valcls3  = %valcls3%  valkit3  = %valkit3% 
@@ -378,7 +378,7 @@ BEGIN
   END
 
 
-  LAF DEBUGPRINT INT_VAR level = 3 STR_VAR func = EVAL ~merge_item: 
+  LAF DEBUGPRINT INT_VAR SEVERITY = 3 STR_VAR MESSAGE = EVAL ~merge_item: 
     valcls1   = %valcls1% valkit1   = %valkit1% diff_1 = %diff_1%
     valcls2   = %valcls2% valkit2   = %valkit2% diff_2 = %diff_2%
     valcls3   = %valcls3% valkit3   = %valkit3% diff_3 = %diff_3%
@@ -393,86 +393,271 @@ END
 // returns SORTED array of abilities at a given level
 DEFINE_ACTION_FUNCTION get_clab_level
   INT_VAR level = 1
-  STR_VAR clab  = ""
+  STR_VAR clab  = "" pre = ""
   RET numabil levels
   RET_ARRAY abilities
 BEGIN
-  ACTION_IF ! FILE_EXISTS_IN_GAME "%clab%" BEGIN FAIL ~clab <%clab%> does not exist~ END
-  ACTION_IF level <= 1 BEGIN FAIL ~level <%level%> is too low~ END
-  COPY_EXISTING "%clab%"
-    SET numabil = 0
-    COUNT_2DA_COLS levels
-    READ_2DA_ENTRIES_NOW array levels
-    FOR (row = 0; row < array; ++row) BEGIN
-      READ_2DA_ENTRY_FORMER array row level ability
-      PATCH_IF NOT (~%ability%~ STRING_EQUAL ~****~) BEGIN
-        SPRINT $abilities(numabil) ~%ability%~
-        numabil += 1
+  ACTION_DEFINE_ARRAY abilities BEGIN END
+  OUTER_SET numabil = 0
+  OUTER_SET levels = 0 - 1
+  OUTER_SPRINT abilstr ""
+  ACTION_IF (EVAL "%clab%" STRING_CONTAINS_REGEXP "\.2DA") BEGIN OUTER_SPRINT clab "%clab%.2DA" END
+  ACTION_IF FILE_EXISTS_IN_GAME EVAL "%clab%" BEGIN  
+    PRINT "file exists."
+    ACTION_IF level < 1 BEGIN FAIL ~level <%level%> is too low~ END
+    PRINT "level sufficient."
+    COPY_EXISTING "%clab%" ~override~
+      COUNT_2DA_COLS levels
+      READ_2DA_ENTRIES_NOW ~array~ levels
+      FOR (row = 0; row < ~%array%~; ++row) BEGIN
+        READ_2DA_ENTRY_FORMER ~array~ row level ~ability~
+        PATCH_IF NOT (~%ability%~ STRING_EQUAL ~****~) BEGIN
+          SPRINT $abilities("%numabil%") EVAL ~%pre%%ability%~
+          SPRINT abilstr EVAL "%abilstr% %pre%%ability%"
+          numabil += 1
+        END
       END
+    BUT_ONLY
+    OUTER_PATCH "" BEGIN
+      SPRINT sort_array_name ~abilities~
+      SET sort_size    = numabil
+      SET sort_numeric = 0
+      SET sort_case    = 0
+      LPM SORT_ARRAY
     END
-  BUT_ONLY
-  OUTER_PATCH "" BEGIN
-    SPRINT sort_array_name abilities
-    SET sort_size    = numabil
-    SET sort_numeric = 0
-    SET sort_case    = 0
-    LPM SORT_ARRAY
+  END ELSE BEGIN PRINT ~NOTICE: COULD NOT FIND CLAB: %clab%. SKIPPING.~ END
+  OUTER_SET MYlevel = level
+  LAF DEBUGPRINT INT_VAR SEVERITY = 3 STR_VAR MESSAGE = EVAL 
+"get_clab_level: 
+  level: %MYlevel%
+  clab : %clab%
+  pre  : %pre%
+  numabil: %numabil%
+  levels: %levels%
+  abils: %abilstr%
+"
   END
+  
 END
 
-DEFINE_ACTION_FUNCTION merge_clab_level
+DEFINE_PATCH_FUNCTION merge_clab_level
   INT_VAR level = 1
   STR_VAR
-  clabkit1 clabcls1
-  clabkit2 clabcls2
-  clabkit3 clabcls3
+  clabkit1 = "" clabcls1 = "" pre1 = ""
+  clabkit2 = "" clabcls2 = "" pre2 = ""
+  clabkit3 = "" clabcls3 = "" pre3 = ""
   RET levels
   RET_ARRAY 
   abmerge
 BEGIN
-  ACTION_DEFINE_ASSOCIATIVE_ARRAY levels BEGIN END
-  ACTION_DEFINE_ASSOCIATIVE_ARRAY numabils BEGIN END
-  
-  ACTION_DEFINE_ASSOCIATIVE_ARRAY clabs  BEGIN 
-    kit1 => "%clabkit1%" cls1 => "%clabcls1%"
-    kit2 => "%clabkit2%" cls2 => "%clabcls2%"
-    kit3 => "%clabkit3%" cls3 => "%clabcls3%"
-  END 
-  ACTION_PHP_EACH "clabs" AS "name" => "clabtable"
-    LAF get_clab_level INT_VAR level STR_VAR clab = EVAL "%clabtable%" RET $levels(EVAL "%name%") = levels $numabils(EVAL "%name%") = numabils RET_ARRAY EVAL "abils_%name%" = abilities END
+  CLEAR_ARRAY abmerge
+
+  INNER_ACTION BEGIN
+    LAF merge_clab_level
+      INT_VAR level = level
+      STR_VAR
+      clabkit1 clabcls1 pre1
+      clabkit2 clabcls2 pre2
+      clabkit3 clabcls3 pre3
+      RET levels
+      RET_ARRAY 
+      abmerge 
+    END
   END
-  
+END
+
+DEFINE_ACTION_FUNCTION merge_clab_level
+  INT_VAR level = 0
+  STR_VAR
+  clabkit1 = "" clabcls1 = "" pre1 = ""
+  clabkit2 = "" clabcls2 = "" pre2 = ""
+  clabkit3 = "" clabcls3 = "" pre3 = ""
+  RET levels
+  RET_ARRAY 
+  abmerge
+BEGIN
+  LAF DEBUGPRINT STR_VAR MESSAGE = EVAL 
+"merge_clab_level: level=%level%
+  %clabkit1% %clabkit2% %clabkit3%
+  %clabcls1% %clabcls2% %clabcls3%
+  %pre1% %pre2% %pre3%"
+  END
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY  levels_ALL  BEGIN END
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY  numabils    BEGIN END
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY  ind_array   BEGIN END                                                     
+  OUTER_FOR (i = 1; i <= NUMCLASS; ++i) BEGIN
+    OUTER_SPRINT clab EVAL "%clabkit%i%%" OUTER_SPRINT pre EVAL ~%pre_%i%%~
+    LAF get_clab_level INT_VAR level = level STR_VAR pre = EVAL "%pre%" clab = EVAL "%clab%"
+                       RET $levels_ALL(EVAL "kit%i%") = levels $numabils(EVAL "kit%i%") = numabil 
+                       RET_ARRAY EVAL "abils_kit%i%" = abilities END
+    OUTER_SPRINT clab EVAL "%clabcls%i%%" OUTER_SPRINT pre EVAL ~%pre_%i%%~
+    LAF get_clab_level INT_VAR level = level STR_VAR pre = EVAL "%pre%" clab = EVAL "%clab%"
+                       RET $levels_ALL(EVAL "cls%i%") = levels $numabils(EVAL "cls%i%") = numabil 
+                       RET_ARRAY EVAL "abils_cls%i%" = abilities END
+    OUTER_SET $ind_array(EVAL "kit%i%") = 0
+    OUTER_SET $ind_array(EVAL "cls%i%") = 0
+   
+   
+  END
+  ACTION_CLEAR_ARRAY abmerge
+  ACTION_DEFINE_ARRAY  abmerge   BEGIN END                                                     
+
   OUTER_PATCH "" BEGIN
+    SPRINT MINWITHIN_arrayname ~levels_ALL~
+    SET MINWITHIN_boundlower = 0
+    SET MINWITHIN_boundupper = 0 - 1
+    LPM MINWITHIN
+    levels = "%MIN_value%"
     numabmerge = 0
     not_done_merging = 1
-    PATCH_DEFINE_ASSOCIATIVE_ARRAY  ind_array  BEGIN kit1 => 0 cls1 => 0
-                                                     kit2 => 0 cls2 => 0 
-                                                     kit3 => 0 cls3 => 0 END
-    WHILE NOT done_merging BEGIN
-      SPRINT MIN_arrayname ind_array
-      LPM MIN // returns MIN_key, MIN_value
-      
-      curr_abil = $"abils_%MIN_key%"("%MIN_value%")
-      PHP_EACH "ind_array" AS "name" => "ind" BEGIN
-        SPRINT abil EVAL "abils_%name%_ind_array_%name%"
-        EVAL "val%name%" = ("%abil%" STRING_EQUAL "%curr_abil%")
-        EVAL "ind_array_%name%" =  EVAL "val%name%"  ? EVAL "ind_array_%name%" + 1 : EVAL "ind_array_%name%"
-        not_done_merging = ( EVAL "ind_array_%name%" < EVAL "numabils_%name%") AND not_done_merging
-      END
-      
-      LPF merge_item
-        INT_VAR valkit1      valkit2      valkit3      valcls1      valcls2      valcls3      valmulti = 0
-        RET merge
-      END
-      
-      PATCH_IF merge BEGIN
-        $abmerge(numabmerge) = curr_abil
-        numabmerge += 1
+    
+    WHILE not_done_merging BEGIN
+      SPRINT MINWITHIN_arrayname ~ind_array~
+      SET MINWITHIN_boundlower = 0
+      SPRINT MINWITHIN_boundupper ~numabils~
+      LPM MINWITHIN // returns MIN_key, MIN_value
+      SPRINT strabil ""
+      PATCH_IF "%MIN_value%" < EVAL "%numabils_%MIN_key%%" BEGIN
+        SPRINT curr_abil $"abils"(EVAL "%MIN_key%" EVAL "%MIN_value%")
+        any_inds_valid = 0
+        PHP_EACH ~ind_array~ AS ~name~ => ~ind~ BEGIN
+          PATCH_IF (ind < EVAL ~numabils_%name%~) AND (ind >= 0) BEGIN
+            SPRINT abil $"abils"("%name%" "%ind%")
+            SPRINT strabil EVAL "%strabil% val%name%_%ind% = %abil%"
+            SET EVAL ~val%name%~ = (~%abil%~ STRING_EQUAL ~%curr_abil%~) ? 1 : 0
+            SET EVAL ~ind_array_%name%~ =  EVAL ~%val%name%%~  ? EVAL ~%ind_array_%name%%~ + 1 : EVAL ~%ind_array_%name%%~
+            SET any_inds_valid = ( EVAL ~%ind_array_%name%%~ < EVAL ~numabils_%name%~) OR any_inds_valid
+          END ELSE BEGIN
+            SET EVAL ~val%name%~ = 0
+          END
+        END
+        not_done_merging = any_inds_valid
+        INNER_ACTION BEGIN
+          ACTION_IF FLAG_TRIPLECLASS BEGIN
+          LAF merge_item
+            INT_VAR valkit1      valkit2      valkit3      valcls1      valcls2      valcls3      valmulti = 0
+            RET merge
+          END
+          END ELSE BEGIN
+          LAF merge_item
+            INT_VAR valkit1      valkit2      valcls1      valcls2      valmulti = 0
+            RET merge
+          END
+          END
+          LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL 
+            "merge_clab_level: curr: %curr_abil%, compare: %strabil% => %merge%"
+          END
+        END
+        PATCH_IF merge BEGIN
+          INNER_ACTION BEGIN LAF DEBUGPRINT INT_VAR SEVERITY = 3 STR_VAR MESSAGE = EVAL "merge_clab_level: merging %curr_abil% into $abmerge(%numabmerge%)..." END END
+          SPRINT $abmerge("%numabmerge%") EVAL "%curr_abil%"
+          numabmerge += 1
+        END
       END ELSE BEGIN
-        //skip
+        not_done_merging = 0
       END
       
     END 
   END
+  
 END
 
+DEFINE_PATCH_MACRO MINWITHIN
+BEGIN
+//define arrays MINWITHIN_arrayname MINWITHIN_boundlower MINWITHIN_boundupper
+SPRINT MIN_key  ""
+SPRINT MIN_value  ""
+DEFAULT_LOW = 0
+DEFAULT_HIGH = 0 - 1
+DEFAULT_FAIL = 1
+PATCH_IF NOT (IS_AN_INT "%MINWITHIN_fail%") BEGIN MINWITHIN_fail = DEFAULT_FAIL END
+PHP_EACH "%MINWITHIN_arrayname%" AS "key" => "value" BEGIN
+  PATCH_IF (IS_AN_INT EVAL "%MINWITHIN_boundlower%") BEGIN
+    lobound = MINWITHIN_boundlower
+  END ELSE BEGIN 
+    PATCH_IF (IS_AN_INT EVAL "%%MINWITHIN_boundlower%_%key%%") BEGIN
+      lobound = EVAL "%%MINWITHIN_boundlower%_%key%%"
+    END ELSE BEGIN
+      lobound = DEFAULT_LOW
+    END
+  END
+  PATCH_IF (IS_AN_INT EVAL "%MINWITHIN_boundupper%") BEGIN
+    hibound = MINWITHIN_boundupper
+  END ELSE BEGIN 
+    PATCH_IF (IS_AN_INT EVAL "%%MINWITHIN_boundupper%_%key%%") BEGIN
+      hibound = EVAL "%%MINWITHIN_boundupper%_%key%%"
+    END ELSE BEGIN
+      hibound = DEFAULT_HIGH
+    END
+  END   
+  INNER_ACTION BEGIN
+  LAF DEBUGPRINT INT_VAR SEVERITY = 3 STR_VAR MESSAGE = EVAL 
+    "MINWITHIN %MINWITHIN_arrayname%: %key% => %value%, %MINWITHIN_boundlower% : %lobound% %MINWITHIN_boundupper% : %hibound%"
+  END
+  END
+  PATCH_IF (IS_AN_INT "%value%") BEGIN
+    PATCH_IF (value >= lobound) AND ((hibound >= 0) ? value < hibound : 1) BEGIN
+      PATCH_IF (IS_AN_INT "%MIN_value%") BEGIN
+        PATCH_IF (value < MIN_value) BEGIN
+          SET MIN_value = value
+          SPRINT MIN_key "%key%"
+        END
+      END ELSE BEGIN
+        SET MIN_value = value
+        SPRINT MIN_key "%key%"
+      END
+    END
+  END
+END
+PATCH_IF NOT (IS_AN_INT "%MIN_value%") BEGIN 
+  PATCH_IF MINWITHIN_fail BEGIN PATCH_FAIL ~No min value found within bounds for %MIN_arrayname%~ END 
+END
+INNER_ACTION BEGIN
+LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL 
+  "MINWITHIN %MINWITHIN_arrayname%: MIN_value %MIN_value%, MIN_key %MIN_key% |
+       LOWER BOUND: %MINWITHIN_boundlower% : %lobound% 
+       UPPER BOUND: %MINWITHIN_boundupper% : %hibound%"
+END
+END
+END
+
+DEFINE_ACTION_FUNCTION merge_clab 
+STR_VAR
+  clabkit1 = "" clabcls1 = "" pre_1 = ""
+  clabkit2 = "" clabcls2 = "" pre_2 = ""
+  clabkit3 = "" clabcls3 = "" pre_3 = ""
+  clabmerge = ""
+BEGIN
+  LAF DEBUGPRINT STR_VAR MESSAGE = EVAL 
+"merge_clab: 
+  %clabkit1% %clabkit2% %clabkit3%
+  %clabcls1% %clabcls2% %clabcls3%
+  %pre_1% %pre_2% %pre_3%"
+  END
+  OUTER_SET levels = 50
+  ACTION_IF ! FILE_EXISTS_IN_GAME clabmerge BEGIN
+    COPY_EXISTING ~BLANKCLAB.2DA~ ~override/%clabmerge%~
+  END
+  COPY_EXISTING ~%clabmerge%~ ~override~
+    FOR (level = 1; level < levels; ++level) BEGIN
+      CLEAR_ARRAY abmerge
+      DEFINE_ARRAY abmerge BEGIN END
+      LPF merge_clab_level
+          INT_VAR level = level
+          STR_VAR
+          clabkit1 = EVAL "%clabkit1%" clabcls1 = EVAL "%clabcls1%" pre1 = EVAL "%pre_1%"
+          clabkit2 = EVAL "%clabkit2%" clabcls2 = EVAL "%clabcls2%" pre2 = EVAL "%pre_2%"
+          clabkit3 = EVAL "%clabkit3%" clabcls3 = EVAL "%clabcls3%" pre3 = EVAL "%pre_3%"
+          RET levels
+          RET_ARRAY 
+          abmerge
+      END
+      SPRINT mergestr ""
+      PHP_EACH "abmerge" AS "id" => "ability" BEGIN
+        LPF bl_add_ability_to_clab INT_VAR level STR_VAR ability END
+        SPRINT mergestr EVAL "%mergestr% %id% => %ability%"
+      END
+      INNER_ACTION BEGIN LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL "merge_clab: level = %level%, merged_abils = %mergestr%" END END
+    END
+  BUT_ONLY
+END
