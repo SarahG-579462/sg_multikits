@@ -287,12 +287,12 @@ BEGIN
         FAIL ~UNKNOWN MULTICLASS PREFIX~
     END
   END
-  LAF GET_UNIQUE_FILE_NAME STR_VAR extension = "2DA" base = "CLAB%kitname%" RET newclab = filename END
-  OUTER_PATCH_SAVE newclab "%newclab%" BEGIN REPLACE_TEXTUALLY CASE_INSENSITIVE EXACT_MATCH ~__~ ~SGCL~ END
+  LAF GET_UNIQUE_FILE_NAME STR_VAR extension = "2DA" base = EVAL "CLAB%kitname%" RET newclab = filename END
+  OUTER_PATCH_SAVE newclab "%newclab%.2DA" BEGIN REPLACE_TEXTUALLY CASE_INSENSITIVE EXACT_MATCH ~__~ ~SGCA~ END
   ACTION_IF FLAG_TRIPLECLASS BEGIN
     LAF merge_clab 
       STR_VAR
-      clabkit1  = EVAL "%userkitclab_1%" clabcls1  pre_1 = EVAL "%pre_1%" //use no-prefix for base class
+      clabkit1  = EVAL "%userkitclab_1%" clabcls1  pre_1 = EVAL "" //use no-prefix for base class
       clabkit2  = EVAL "%userkitclab_2%" clabcls2  pre_2 = EVAL "%pre_2%" 
       clabkit3  = EVAL "%userkitclab_3%" clabcls3  pre_3 = EVAL "%pre_3%" 
       clabmerge = EVAL "%newclab%"
@@ -301,7 +301,7 @@ BEGIN
   ELSE BEGIN
     LAF merge_clab 
       STR_VAR
-      clabkit1  = EVAL "%userkitclab_1%" clabcls1  pre_1 = EVAL "%pre_1%" //use no-prefix for base class
+      clabkit1  = EVAL "%userkitclab_1%" clabcls1  pre_1 = EVAL "" //use no-prefix for base class
       clabkit2  = EVAL "%userkitclab_2%" clabcls2  pre_2 = EVAL "%pre_2%" 
       clabmerge = EVAL "%newclab%"
     END 
