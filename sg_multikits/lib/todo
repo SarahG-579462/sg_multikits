@@ -1,0 +1,6 @@
+todo:
+this commit: 
+- move clab read to sg#util.
+- add function for read_qd_ability
+- functionalize write_qd_ability
+

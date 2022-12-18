@@ -280,7 +280,10 @@ BEGIN
         ~D~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABDR01~ END
         ~F~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABFI01~ END
         ~M~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABMA01~ END
-        ~C~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABPR01~ END
+        ~C~ BEGIN 
+          OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABPR01~ 
+          OUTER_SPRINT EVAL "pre_%i%" "P" 
+          END // Cleric is weird...
         ~R~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABRN01~ END
         ~T~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABTH01~ END
       DEFAULT

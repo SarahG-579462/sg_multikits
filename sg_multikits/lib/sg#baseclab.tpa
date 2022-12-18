@@ -1,0 +1,94 @@
+// SG#BASECLAB.TPA
+INCLUDE "%MOD_FOLDER%/lib/a7#add_kit_ex.tpa"
+INCLUDE "%MOD_FOLDER%/lib/sg#io.tpa"
+DEFINE_ACTION_FUNCTION spellify_baseclabs
+BEGIN
+  ACTION_DEFINE_ASSOCIATIVE_ARRAY class_table BEGIN
+    ~DRUID~   => ~D~
+    ~FIGHTER~ => ~F~
+    ~MAGE~    => ~M~
+    ~CLERIC~  => ~P~
+    ~RANGER~  => ~R~
+    ~THIEF~   => ~T~
+  END
+  ACTION_PHP_EACH "class_table" AS "class" => "base_class" BEGIN
+    LAF a7#add_kit_ex#print_message INT_VAR severity = 1 STR_VAR msg = EVAL "Turning all CLAB abilities for %class% into spells." END
+    LAF spellify_clab STR_VAR base_class END
+  END
+END
+
+DEFINE_ACTION_FUNCTION spellify_clab
+STR_VAR
+  base_class = ~~
+BEGIN
+  ACTION_IF NOT (~%base_class%~ STR_EQ ~~) BEGIN
+    // ensure qdmc spells exist:
+    LAF a7#add_kit_ex#ensure_qdmc_spl STR_VAR base_class END
+    // ensure template spells exist:
+    
+    LAF a7#add_kit_ex#ensure_qdmc_internal
+      RET success internal_name_GA internal_name_AP
+    END 
+     
+    // ensure qdmc is in base_clab:
+    LAF a7#add_kit_ex#ensure_base_clab STR_VAR base_class RET base_clab = clab_resref END 
+    
+    COPY_EXISTING ~%base_clab%.2DA~ ~override~
+      levels = 41
+      FOR (level = 1; level < levels; ++level) BEGIN
+        LPF remove_abilities_from_clab INT_VAR level STR_VAR except = ~QD_MC~ RET levels RET_ARRAY abilities END
+        PHP_EACH "abilities" AS "ind" => "ability" BEGIN
+          // add ability to ~QD_MC~
+          TO_UPPER ~ability~
+          LPF a7#add_kit_ex#print_message INT_VAR severity = 1 STR_VAR msg = EVAL ~Adding %ability% to QD_MC%base_class%%level%...~ END
+            
+          PATCH_IF (STRING_LENGTH ~%ability%~ > 3) BEGIN
+            LPF SUBSTRING INT_VAR start = 0 length = 3 STR_VAR string = EVAL ~%ability%~ RET abil_type = substring END
+            SET length = (STRING_LENGTH ~%ability%~) - 3
+            LPF SUBSTRING INT_VAR start = 3 length STR_VAR string = EVAL ~%ability%~ RET abil_new = substring END
+            PATCH_IF length >= 8 BEGIN
+              LPF GET_UNIQUE_FILE_NAME STR_VAR extension = "EFF" base = EVAL "SGAB_%abil_new%" RET abil_new_name = filename END
+              INNER_PATCH_SAVE abil_new_name "%abil_new_name%" BEGIN REPLACE_TEXTUALLY CASE_INSENSITIVE EXACT_MATCH ~__~ ~SGAB~ END
+              LPF a7#add_kit_ex#print_message INT_VAR severity = 2 STR_VAR msg = EVAL ~Internal ability name too long [%abil_new%]. Making copy as [%abil_new_name%].~ END
+            END ELSE BEGIN
+              SPRINT abil_new_name  EVAL "%abil_new%#"
+            END
+            SET length = (STRING_LENGTH ~%abil_new_name%~)
+            PATCH_IF (length <= 8) BEGIN
+              DEFINE_ASSOCIATIVE_ARRAY abil_types BEGIN
+                ~AP_~ => ~%internal_name_AP%~
+                ~GA_~ => ~%internal_name_GA%~
+              END
+              PATCH_IF (VARIABLE_IS_SET $abil_types(~%abil_type%~)) BEGIN
+                // granted abilities or bonuses
+                TEXT_SPRINT qdmc_eff_resref EVAL $abil_types(~%abil_type%~)
+                INNER_ACTION BEGIN
+                  COPY ~%qdmc_eff_resref%~ ~override/%abil_new_name%.EFF~
+                    WRITE_ASCIIE 0x30 ~%abil_new%~ (8)
+                    SET col_length = STRING_LENGTH ~%level%~
+                  ACTION_IF (level < 10) BEGIN
+                    OUTER_TEXT_SPRINT qdmc_spl_resref ~QD_MC%base_class%0%level%~
+                  END ELSE BEGIN
+                    OUTER_TEXT_SPRINT qdmc_spl_resref ~QD_MC%base_class%%level%~
+                  END
+                  COPY_EXISTING ~%qdmc_spl_resref%.SPL~ ~override~
+                    LPF ADD_SPELL_EFFECT
+                      INT_VAR insert_point = 0 opcode = 177 target = 1 timing = 9 resist_dispel = 0 power = 0 parameter1 = 0 parameter2 = 9// add only for no-kit
+                      STR_VAR resource = EVAL ~%abil_new_name%~
+                    END
+                  BUT_ONLY
+                END
+              END ELSE BEGIN
+                LPF a7#add_kit_ex#print_message INT_VAR severity = 2 STR_VAR msg = EVAL ~Could not evaluate kit ability entry [%ability%]. Skipping.~ END
+              END
+            END ELSE BEGIN
+              LPF a7#add_kit_ex#print_message INT_VAR severity = 2 STR_VAR msg = EVAL ~Internal ability name too long [%abil_new%]. Skipping.~ END
+            END
+          END ELSE BEGIN
+            LPF a7#add_kit_ex#print_message INT_VAR severity = 2 STR_VAR msg = EVAL ~Could not evaluate kit ability entry [%ability%]. Skipping.~ END
+          END
+        END
+      END
+    BUT_ONLY
+  END
+END
