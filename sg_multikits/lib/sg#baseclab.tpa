@@ -1,6 +1,7 @@
 // SG#BASECLAB.TPA
 INCLUDE "%MOD_FOLDER%/lib/a7#add_kit_ex.tpa"
 INCLUDE "%MOD_FOLDER%/lib/sg#io.tpa"
+INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa"
 DEFINE_ACTION_FUNCTION spellify_baseclabs
 BEGIN
   ACTION_DEFINE_ASSOCIATIVE_ARRAY class_table BEGIN
@@ -16,36 +17,64 @@ BEGIN
     LAF spellify_clab STR_VAR base_class END
   END
 END
+DEFINE_ACTION_FUNCTION create_qdmc_eff
+BEGIN
 
+ACTION_IF (NOT FILE_EXISTS ~.../a7-add_kit_ex/inlined/QD_MC_AP.EFF~) BEGIN
+  COPY - ~.../a7-add_kit_ex/inlined/blank.file~ ~.../a7-add_kit_ex/inlined/QD_MC_AP.EFF~
+    INSERT_BYTES 0 0x110
+    WRITE_ASCII  0x00 "EFF V2.0EFF V2.0" (16)
+    PATCH_FOR_EACH ofs IN ~0x80~ ~0x84~ ~0x88~ ~0x8c~ BEGIN
+      WRITE_LONG ofs "-1"
+    END
+    WRITE_LONG   0x10 146 // cast spell
+    WRITE_LONG   0x14 2   // preset target
+    WRITE_LONG   0x20 1   // cast instantly (ignore level)
+    WRITE_SHORT  0x24 1   // permament until death
+    WRITE_SHORT  0x2c 100 // probability 100%
+END
+
+ACTION_IF (NOT FILE_EXISTS ~.../a7-add_kit_ex/inlined/QD_MC_GA.EFF~) BEGIN
+  COPY - ~.../a7-add_kit_ex/inlined/blank.file~ ~.../a7-add_kit_ex/inlined/QD_MC_GA.EFF~
+    INSERT_BYTES 0 0x110
+    WRITE_ASCII  0x00 "EFF V2.0EFF V2.0" (16)
+    PATCH_FOR_EACH ofs IN ~0x80~ ~0x84~ ~0x88~ ~0x8c~ BEGIN
+      WRITE_LONG ofs "-1"
+    END
+    WRITE_LONG   0x10 171 // give spell
+    WRITE_LONG   0x14 2   // preset target
+    WRITE_SHORT  0x24 1   // permament until death
+    WRITE_SHORT  0x2c 100 // probability 100%
+END
+END
 DEFINE_ACTION_FUNCTION spellify_clab
 STR_VAR
-  base_class = ~~
+  base_class = ~~// token for base_class.
 BEGIN
   ACTION_IF NOT (~%base_class%~ STR_EQ ~~) BEGIN
-    // ensure qdmc spells exist:
-    LAF a7#add_kit_ex#ensure_qdmc_spl STR_VAR base_class END
-    // ensure template spells exist:
-    
-    LAF a7#add_kit_ex#ensure_qdmc_internal
-      RET success internal_name_GA internal_name_AP
-    END 
+    LAF a7#add_kit_ex#ensure_qdmc_spl STR_VAR base_class END // Ensure helper spells for multiclass abilities are available
+
      
-    // ensure qdmc is in base_clab:
+    // Ensure specified base class CLAB contains multiclass helper entries
     LAF a7#add_kit_ex#ensure_base_clab STR_VAR base_class RET base_clab = clab_resref END 
     
+    LAF create_qdmc_eff END
     COPY_EXISTING ~%base_clab%.2DA~ ~override~
       levels = 41
       FOR (level = 1; level < levels; ++level) BEGIN
-        LPF remove_abilities_from_clab INT_VAR level STR_VAR except = ~QD_MC~ RET levels RET_ARRAY abilities END
-        PHP_EACH "abilities" AS "ind" => "ability" BEGIN
+        PATCH_CLEAR_ARRAY abilities
+        LPF remove_abilities_from_clab INT_VAR level STR_VAR except = ~QD_MC~ RET levels num_abil RET_ARRAY abilities = abilities END
+        FOR (ind = 0; ind < num_abil; ind += 1) BEGIN
           // add ability to ~QD_MC~
+          SPRINT ability EVAL $abilities(EVAL ~%ind%~)
+          
+          LPF a7#add_kit_ex#print_message INT_VAR severity = 1 STR_VAR msg = EVAL ~Adding %ability%, %ind% to QD_MC%base_class%%level%...~ END
+          
           TO_UPPER ~ability~
-          LPF a7#add_kit_ex#print_message INT_VAR severity = 1 STR_VAR msg = EVAL ~Adding %ability% to QD_MC%base_class%%level%...~ END
-            
           PATCH_IF (STRING_LENGTH ~%ability%~ > 3) BEGIN
             LPF SUBSTRING INT_VAR start = 0 length = 3 STR_VAR string = EVAL ~%ability%~ RET abil_type = substring END
-            SET length = (STRING_LENGTH ~%ability%~) - 3
-            LPF SUBSTRING INT_VAR start = 3 length STR_VAR string = EVAL ~%ability%~ RET abil_new = substring END
+            SET length = (STRING_LENGTH ~%ability%~) - 3// remove AP_, GA_...
+            LPF SUBSTRING INT_VAR start = 3 length STR_VAR string = EVAL ~%ability%~ RET abil_new = substring END// get just the abil name
             PATCH_IF length >= 8 BEGIN
               LPF GET_UNIQUE_FILE_NAME STR_VAR extension = "EFF" base = EVAL "SGAB_%abil_new%" RET abil_new_name = filename END
               INNER_PATCH_SAVE abil_new_name "%abil_new_name%" BEGIN REPLACE_TEXTUALLY CASE_INSENSITIVE EXACT_MATCH ~__~ ~SGAB~ END
@@ -56,14 +85,14 @@ BEGIN
             SET length = (STRING_LENGTH ~%abil_new_name%~)
             PATCH_IF (length <= 8) BEGIN
               DEFINE_ASSOCIATIVE_ARRAY abil_types BEGIN
-                ~AP_~ => ~%internal_name_AP%~
-                ~GA_~ => ~%internal_name_GA%~
+                ~AP_~ => ~QD_MC_AP~
+                ~GA_~ => ~QD_MC_GA~
               END
               PATCH_IF (VARIABLE_IS_SET $abil_types(~%abil_type%~)) BEGIN
                 // granted abilities or bonuses
                 TEXT_SPRINT qdmc_eff_resref EVAL $abil_types(~%abil_type%~)
                 INNER_ACTION BEGIN
-                  COPY ~%qdmc_eff_resref%~ ~override/%abil_new_name%.EFF~
+                  COPY ~.../a7-add_kit_ex/inlined/%qdmc_eff_resref%.EFF~ ~override/%abil_new_name%.EFF~
                     WRITE_ASCIIE 0x30 ~%abil_new%~ (8)
                     SET col_length = STRING_LENGTH ~%level%~
                   ACTION_IF (level < 10) BEGIN

@@ -1,4 +1,4 @@
-INCLUDE "%MOD_FOLDER%/lib/sg#util"
+INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa"
 
 ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST// ASSOCIATIONS: column-label, is_transposed, mergetype, expected_columns
 BEGIN //prompt, one two, loosen, restrict, sum, random, SMART, SKIP

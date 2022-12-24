@@ -235,6 +235,7 @@ DEFINE_PATCH_FUNCTION remove_abilities_from_clab
     except = ~~
   RET
     levels
+    num_abil
 	RET_ARRAY
 		abilities
 BEGIN
@@ -249,13 +250,14 @@ BEGIN
 		PATCH_IF NOT (~%value%~ STRING_EQUAL ~****~) BEGIN	//has value
       PATCH_IF (~%except%~ STR_EQ ~~) OR (/* value does not match regexp except*/ ~%value%~ STRING_CONTAINS_REGEXP ~%except%~) BEGIN
         LPF DEBUGPRINT INT_VAR SEVERITY = 1 STR_VAR MESSAGE = EVAL "deleting ability %value% from clab..." END
-        SPRINT $abilities(ab_ind_curr) ~%value%~
+        SPRINT $abilities(EVAL ~%ab_ind_curr%~) ~%value%~
         SET_2DA_ENTRY row level levels ~****~	//add ability
         ab_ind_curr += 1
       END
 		END
 	END
   PRETTY_PRINT_2DA
+  num_abil = ab_ind_curr
 END
 
 // returns SORTED array of abilities at a given level
