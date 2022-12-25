@@ -1,4 +1,5 @@
 INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa"
+INCLUDE "%MOD_FOLDER%/lib/a7#add_kit_ex.tpa"
 
 ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST// ASSOCIATIONS: column-label, is_transposed, mergetype, expected_columns
 BEGIN //prompt, one two, loosen, restrict, sum, random, SMART, SKIP
@@ -81,7 +82,6 @@ END
 
 DEFINE_ACTION_FUNCTION 2da_to_asarray
   INT_VAR name_col = 0
-          ncols = 0
   STR_VAR filename = ~~
           fileto = ~override~
   RET_ARRAY
@@ -89,23 +89,13 @@ DEFINE_ACTION_FUNCTION 2da_to_asarray
     cols
     outtable2
     nrows
-    ncols
   BEGIN
     ACTION_DEFINE_ASSOCIATIVE_ARRAY "rows" BEGIN END
     ACTION_DEFINE_ASSOCIATIVE_ARRAY "cols" BEGIN END
     ACTION_DEFINE_ARRAY "outtable2" BEGIN END
     COPY_EXISTING "%filename%" "%fileto%"
-      PATCH_IF ncols == 0 BEGIN
-        COUNT_2DA_COLS ncols
-      END ELSE BEGIN
-        COUNT_2DA_COLS ncolsreal
-        PATCH_IF ncolsreal != ncols BEGIN
-          PATCH_WARN ~%filename%: number of columns, %ncolsreal% does not match expected number of columns, %ncols%.~
-        END
-        PATCH_IF ncolsreal < ncols BEGIN
-          ncols = ncolsreal 
-        END
-      END
+      LPF a7#add_kit_ex#normalize_table END // fix bugs with mods playing with columns...
+      COUNT_2DA_COLS ncols
       
       LPF read_2da_header_now RET ncolscheck = ncols RET_ARRAY "cols" = output  END
       
@@ -135,7 +125,6 @@ RET
 column_label
 is_transposed
 mergetype
-ncols
 BEGIN
   OUTER_SET i = 0
   OUTER_WHILE (STRING_LENGTH "%opts%" > 0) BEGIN
@@ -154,9 +143,6 @@ BEGIN
   OUTER_SET column_label    = (IS_AN_INT EVAL "%opt_1%") ? EVAL "%opt_1%" : 0
   OUTER_SET is_transposed   = (IS_AN_INT EVAL "%opt_2%") ? EVAL "%opt_2%" : 0
   OUTER_SET mergetype       = (IS_AN_INT EVAL "%opt_3%") ? EVAL "%opt_3%" : 0
-  OUTER_SET ncols_bg1       = (IS_AN_INT EVAL "%opt_4%") ? EVAL "%opt_4%" : 0
-  OUTER_SET ncols_bg2       = (IS_AN_INT EVAL "%opt_5%") ? EVAL "%opt_5%" : ncols_bg1
-  OUTER_SET ncols = (GAME_IS ~bgee~) ? ncols_bg1 : ncols_bg2
 END
 DEFINE_ACTION_MACRO GET_2DAS
 BEGIN
@@ -164,10 +150,10 @@ BEGIN
   
 
   ACTION_PHP_EACH "2DALIST" AS "2da" => "opts" BEGIN
-    LAF parse_opts STR_VAR opts = EVAL "%opts%" RET col_id = column_label ncols = ncols END
+    LAF parse_opts STR_VAR opts = EVAL "%opts%" RET col_id = column_label END
     
     LAF 2da_to_asarray
-      INT_VAR name_col = EVAL "%col_id%" ncols = ncols
+      INT_VAR name_col = EVAL "%col_id%"
       STR_VAR filename = EVAL ~%2da%.2da~
       RET_ARRAY ~%2da%_rows~ = rows
                 ~%2da%_cols~ = cols
@@ -187,14 +173,14 @@ BEGIN
 
   ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST_MOD
   BEGIN
-    ~multi_grid~ => "0,0,0,0"
+    ~multi_grid~ => "0,0,0"
   END
 
   ACTION_PHP_EACH "2DALIST_MOD" AS "2da" => "opts" BEGIN
-    LAF parse_opts STR_VAR opts = EVAL "%opts%" RET col_id = column_label ncols = ncols END
+    LAF parse_opts STR_VAR opts = EVAL "%opts%" RET col_id = column_label END
     
     LAF 2da_to_asarray
-      INT_VAR name_col = EVAL "%col_id%" ncols = ncols
+      INT_VAR name_col = EVAL "%col_id%"
       STR_VAR filename = EVAL ~%MOD_FOLDER%/lib/%2da%.2da~
               fileto = ~~
       RET_ARRAY ~%2da%_rows~ = rows
