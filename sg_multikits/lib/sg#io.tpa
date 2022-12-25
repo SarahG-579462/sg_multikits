@@ -112,6 +112,7 @@ DEFINE_ACTION_FUNCTION 2da_to_asarray
 
       FOR (row = 0; row < "%nrows%"; row += 1) BEGIN
         SPRINT "name" $outtable2("%row%" "%name_col%")
+        TO_UPPER "name"
         SET $"rows"("%name%") = row
       END
 

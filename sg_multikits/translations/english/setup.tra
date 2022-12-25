@@ -6,8 +6,8 @@
 //  lines (translation is not needed)                                         //
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
-@100 = ~INSTALL/UNINSTALL MULTIKITS [Install after any thief kits!]~
-@101 = ~this component standardizes backstabs to use clabs. It also is used so you can uninstall all multikits.~
+@100 = ~INSTALL/UNINSTALL MULTIKITS [Install after anything that changes kits CLABs!]~
+@101 = ~this component standardizes backstabs to use clabs, and QDifys base class clabs to use the same format as multiclasses.~
 
 @200 = ~Enable Extended Druid Multikits [Install after any mod that adds priest spells!]~
 @201 = ~This component turns druid kits into pseudo-clerics and pseudo-rangers.~
