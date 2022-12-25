@@ -7,7 +7,7 @@ This is my first mod, so if you have comments on better practices than my curren
 Here's the plan:
 - multikit base multiclasses, with user input (DONE v0.1)
 - auto-merge 2das without user input  (DONE v0.13)
-- Fix for auto-gain abilities from base class (DONE v0.16, still bugged but core is fixed...)
+- Fix for auto-gain abilities from base class (DONE v0.16)
 - Merge HLA tables
 - ~~multikit base multiclasses, create all possible multikit combos and deploy.~~
   - Too many multikits, will hit 256 kit limit quickly: 1205 from base game alone. 
