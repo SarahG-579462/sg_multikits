@@ -7,7 +7,7 @@
  * Date: 2019-08-19
  */
 
-OUTER_SPRINT ADD_KIT_EX_VERSION ~0.4.0~
+OUTER_SPRINT ADD_KIT_EX_VERSION ~0.5.1~
 
 <<<<<<<< .../a7-add_kit_ex/inlined/blank.file
 >>>>>>>>
@@ -332,6 +332,16 @@ BEGIN
           resref
         RET success
       END
+    END ELSE BEGIN
+      LAF a7#add_kit_ex#add_row
+        STR_VAR
+          kit_name
+          array = ~items~
+          resref
+          clone1 = EVAL ~%clone2%~
+          clone2 = EVAL ~%clone3%~
+        RET success
+      END
     END
   END ELSE ACTION_IF (NOT ~%clone2%~ STR_EQ ~~) BEGIN
     LAF a7#add_kit_ex#add_row
@@ -408,6 +418,16 @@ BEGIN
           kit_name
           array = ~items~
           resref
+        RET success
+      END
+    END ELSE BEGIN
+      LAF a7#add_kit_ex#add_column
+        STR_VAR
+          kit_name
+          array = ~items~
+          resref
+          clone1 = EVAL ~%clone2%~
+          clone2 = EVAL ~%clone3%~
         RET success
       END
     END
@@ -869,15 +889,15 @@ BEGIN
       ACTION_IF (class_id > 0) BEGIN
         ACTION_MATCH class_id WITH
           1 19 BEGIN OUTER_TEXT_SPRINT clab ~CLABMA01~ END  // mage, sorcerer
-          2 BEGIN OUTER_TEXT_SPRINT    clab ~CLABFI01~ END // fighter
-          3 BEGIN OUTER_TEXT_SPRINT    clab ~CLABPR01~ END // cleric
-          4 BEGIN OUTER_TEXT_SPRINT    clab ~CLABTH01~ END // thief
-          5 BEGIN OUTER_TEXT_SPRINT    clab ~CLABBA01~ END // bard
-          6 BEGIN OUTER_TEXT_SPRINT    clab ~CLABPA01~ END // paladin
-          11 BEGIN OUTER_TEXT_SPRINT   clab ~CLABDR01~ END  // druid
-          12 BEGIN OUTER_TEXT_SPRINT   clab ~CLABRN01~ END  // ranger
-          20 BEGIN OUTER_TEXT_SPRINT   clab ~CLABMO01~ END  // monk
-          21 BEGIN OUTER_TEXT_SPRINT   clab ~CLABSH01~ END  // shaman
+          2 BEGIN OUTER_TEXT_SPRINT clab ~CLABFI01~ END // fighter
+          3 BEGIN OUTER_TEXT_SPRINT clab ~CLABPR01~ END // cleric
+          4 BEGIN OUTER_TEXT_SPRINT clab ~CLABTH01~ END // thief
+          5 BEGIN OUTER_TEXT_SPRINT clab ~CLABBA01~ END // bard
+          6 BEGIN OUTER_TEXT_SPRINT clab ~CLABPA01~ END // paladin
+          11 BEGIN OUTER_TEXT_SPRINT clab ~CLABDR01~ END  // druid
+          12 BEGIN OUTER_TEXT_SPRINT clab ~CLABRN01~ END  // ranger
+          20 BEGIN OUTER_TEXT_SPRINT clab ~CLABMO01~ END  // monk
+          21 BEGIN OUTER_TEXT_SPRINT clab ~CLABSH01~ END  // shaman
           DEFAULT
         END
       END
@@ -1419,8 +1439,6 @@ STR_VAR
   base_class  = ~~
 BEGIN
   OUTER_SET kit_id = IDS_OF_SYMBOL(~kit~ ~%kit_name%~)
-  LAF a7#add_kit_ex#print_message INT_VAR severity = 0 STR_VAR msg = EVAL ~QDifying %clab_res%...~ END
-
   ACTION_IF (NOT (~%kit_name%~ STR_EQ ~~ || ~%clab_res%~ STR_EQ ~~) &&
              kit_id > 0 &&
              ~%base_class%~ STRING_MATCHES_REGEXP ~[DFMPRT]~ = 0) BEGIN
@@ -1507,8 +1525,6 @@ BEGIN
               READ_2DA_ENTRY_FORMER rows row col ability
               TO_UPPER ~ability~
               PATCH_IF !(~%ability%~ STR_EQ ~%default%~) BEGIN
-                LPF a7#add_kit_ex#print_message INT_VAR severity = 0 STR_VAR msg = EVAL ~QDifying %ability% for %clab_res%...~ END
-
                 PATCH_IF (~%ability%~ STRING_MATCHES_REGEXP ~[DFMPRT]GA_.+~ = 0 ||
                           ~%ability%~ STRING_MATCHES_REGEXP ~[DFMPRT]AP_.+~ = 0) BEGIN
                   // override base class
@@ -1516,22 +1532,19 @@ BEGIN
                     READ_ASCII 0 class_token (1)
                     DELETE_BYTES 0 1
                   END
-                  LPF a7#add_kit_ex#print_message INT_VAR severity = 0 STR_VAR msg = EVAL ~ability %ability% doesn't use %base_class%, using %class_token%~ END
-
                 END
                 PATCH_IF (STRING_LENGTH ~%ability%~ > 3) BEGIN
                   LPF SUBSTRING INT_VAR start = 0 length = 3 STR_VAR string = EVAL ~%ability%~ RET abil_type = substring END
                   SET length = (STRING_LENGTH ~%ability%~) - 3
                   LPF SUBSTRING INT_VAR start = 3 length STR_VAR string = EVAL ~%ability%~ RET abil_new = substring END
-                  PATCH_IF length >= 8 BEGIN
-                    
+                  PATCH_IF (length >= 8) BEGIN
                     LPF GET_UNIQUE_FILE_NAME STR_VAR extension = "EFF" base = EVAL "SGAB_%abil_new%" RET abil_new_name = filename END
                     INNER_PATCH_SAVE abil_new_name "%abil_new_name%" BEGIN REPLACE_TEXTUALLY CASE_INSENSITIVE EXACT_MATCH ~__~ ~SGAB~ END
                     LPF a7#add_kit_ex#print_message INT_VAR severity = 2 STR_VAR msg = EVAL ~Internal ability name too long [%abil_new%]. Making copy as [%abil_new_name%].~ END
                   END ELSE BEGIN
-                    SPRINT abil_new_name  EVAL "%abil_new%#"
+                    TEXT_SPRINT abil_new_name  ~%abil_new%#~
                   END
-                  SET length = (STRING_LENGTH ~%abil_new_name%~)
+                  SET length = STRING_LENGTH ~%abil_new_name%~
                   PATCH_IF (length <= 8) BEGIN
                     DEFINE_ASSOCIATIVE_ARRAY abil_types BEGIN
                       ~AP_~ => ~QD_MC_AP~
@@ -1766,7 +1779,15 @@ BEGIN
     OUTER_SET kit_number_full = kit_number + kit_id_base
 
     // getting parent class name
-    OUTER_PATCH ~~ BEGIN LOOKUP_IDS_SYMBOL_OF_INT kit_class_name ~class~ kit_class END
+    OUTER_PATCH ~~ BEGIN
+      LOOKUP_IDS_SYMBOL_OF_INT kit_class_name ~class~ kit_class
+      PATCH_IF (kit_class = 19) BEGIN
+        // special: SORCERER class isn't listed in a number of kit-related tables, using fallback option MAGE
+        LOOKUP_IDS_SYMBOL_OF_INT kit_class_name_alt ~class~ 1
+      END ELSE BEGIN
+        TEXT_SPRINT kit_class_name_alt ~~
+      END
+    END
     ACTION_IF (kit_class <= 0 || kit_class >= 100 || IS_AN_INT ~%kit_class_name%~) BEGIN
       ACTION_IF (~%source_kit%~ STR_EQ ~~) BEGIN
         LAF a7#add_kit_ex#print_message INT_VAR severity = 3 STR_VAR msg = ~No valid parent class provided for "kit_class".~ END
@@ -1828,7 +1849,6 @@ BEGIN
             path = EVAL ~%clab_path%~
           RET clab_res = clab
         END
-        
         ACTION_IF (~%clab_res%~ STR_EQ ~~) BEGIN
           LAF a7#add_kit_ex#print_message INT_VAR severity = 3 STR_VAR msg = EVAL ~No valid class ability table specified for kit [%kit_name%].~ END
         END
@@ -1853,7 +1873,7 @@ BEGIN
     // preparing kit/class lookup preference
     OUTER_TEXT_SPRINT clone1 ~%source_kit%~
     OUTER_TEXT_SPRINT clone2 ~%kit_class_name%~
-    OUTER_TEXT_SPRINT clone3 ~~
+    OUTER_TEXT_SPRINT clone3 ~%kit_class_name_alt%~
     ACTION_IF (is_multiclass) BEGIN
       ACTION_DEFINE_ASSOCIATIVE_ARRAY token_to_class_name BEGIN
         ~D~ => ~DRUID~
