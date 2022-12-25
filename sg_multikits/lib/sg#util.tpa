@@ -4,12 +4,15 @@ ACTION_IF DEBUG >= SEVERITY BEGIN
   PRINT "DEBUG%SEVERITY%: %MESSAGE%"
 END
 END
+DEFINE_PATCH_FUNCTION DEBUGPRINT INT_VAR SEVERITY = 1 STR_VAR MESSAGE = "DEBUGPRINT" BEGIN 
+INNER_ACTION BEGIN LAF DEBUGPRINT INT_VAR SEVERITY STR_VAR MESSAGE END END
+END 
+
 DEFINE_ACTION_FUNCTION init_globals STR_VAR filename = "SG_GLOBALS" RET filename BEGIN
-  //LAF DEBUGPRINT STR_VAR func = "init_globals" END
   ACTION_IF ! FILE_EXISTS_IN_GAME ~override/%filename%.2DA~ THEN BEGIN
     LAF DEBUGPRINT STR_VAR MESSAGE = EVAL "init_globals: copying EMPTY2DA to %filename%" END
     COPY ~%MOD_FOLDER%/data/EMPTY2DA.2DA~ ~override/%filename%.2DA~
-  END ELSE BEGIN LAF DEBUGPRINT STR_VAR func = EVAL "init_globals: %filename% already exists." END
+  END ELSE BEGIN LAF DEBUGPRINT STR_VAR MESSAGE = EVAL "init_globals: %filename% already exists." END
     END
 END
 
@@ -223,3 +226,83 @@ BEGIN
 	PRETTY_PRINT_2DA //formatting
 END
 
+DEFINE_PATCH_FUNCTION remove_abilities_from_clab 
+  // Deletes all abilities at a given level, except those matching the regexp ~%except%~. 
+  // Returns an array of removed abilities, and the total number of levels..
+	INT_VAR
+		level = 1
+  STR_VAR
+    except = ~~
+  RET
+    levels
+    num_abil
+	RET_ARRAY
+		abilities
+BEGIN
+  PATCH_DEFINE_ARRAY abilities BEGIN END
+  ab_ind_curr = 0
+	COUNT_2DA_COLS levels									//count columns
+	COUNT_2DA_ROWS levels rows							//count rows
+	READ_2DA_ENTRIES_NOW array levels						//store entries in array
+  added = 0
+	FOR (row = 0; row < array; ++row) BEGIN				//loop through rows
+		READ_2DA_ENTRY_FORMER array row level value		//entry value
+		PATCH_IF NOT (~%value%~ STRING_EQUAL ~****~) BEGIN	//has value
+      PATCH_IF (~%except%~ STR_EQ ~~) OR (/* value does not match regexp except*/ ~%value%~ STRING_CONTAINS_REGEXP ~%except%~) BEGIN
+        LPF DEBUGPRINT INT_VAR SEVERITY = 1 STR_VAR MESSAGE = EVAL "deleting ability %value% from clab..." END
+        SPRINT $abilities(EVAL ~%ab_ind_curr%~) ~%value%~
+        SET_2DA_ENTRY row level levels ~****~	//add ability
+        ab_ind_curr += 1
+      END
+		END
+	END
+  PRETTY_PRINT_2DA
+  num_abil = ab_ind_curr
+END
+
+// returns SORTED array of abilities at a given level
+DEFINE_ACTION_FUNCTION get_clab_level
+  INT_VAR level = 1
+  STR_VAR clab  = "" pre = ""
+  RET numabil levels
+  RET_ARRAY abilities
+BEGIN
+  ACTION_DEFINE_ARRAY abilities BEGIN END
+  OUTER_SET numabil = 0
+  OUTER_SET levels = 0 - 1
+  OUTER_SPRINT abilstr ""
+  ACTION_IF (EVAL "%clab%" STRING_CONTAINS_REGEXP "\.2DA") BEGIN OUTER_SPRINT clab "%clab%.2DA" END
+  ACTION_IF FILE_EXISTS_IN_GAME EVAL "%clab%" BEGIN  
+    COPY_EXISTING "%clab%" ~override~
+      COUNT_2DA_COLS levels
+      READ_2DA_ENTRIES_NOW ~array~ levels
+      FOR (row = 0; row < ~%array%~; ++row) BEGIN
+        READ_2DA_ENTRY_FORMER ~array~ row level ~ability~
+        PATCH_IF NOT (~%ability%~ STRING_EQUAL ~****~) BEGIN
+          SPRINT $abilities("%numabil%") EVAL ~%pre%%ability%~
+          SPRINT abilstr EVAL "%abilstr% %pre%%ability%"
+          numabil += 1
+        END
+      END
+    BUT_ONLY
+    OUTER_PATCH "" BEGIN
+      SPRINT sort_array_name ~abilities~
+      SET sort_size    = numabil
+      SET sort_numeric = 0
+      SET sort_case    = 0
+      LPM SORT_ARRAY
+    END
+  END ELSE BEGIN PRINT ~NOTICE: COULD NOT FIND CLAB: %clab%. SKIPPING.~ END
+  OUTER_SET MYlevel = level
+  LAF DEBUGPRINT INT_VAR SEVERITY = 3 STR_VAR MESSAGE = EVAL 
+"get_clab_level: 
+  level: %MYlevel%
+  clab : %clab%
+  pre  : %pre%
+  numabil: %numabil%
+  levels: %levels%
+  abils: %abilstr%
+"
+  END
+  
+END

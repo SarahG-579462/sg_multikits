@@ -1,3 +1,4 @@
+INCLUDE "%MOD_FOLDER%/lib/sg#util.tpa"
 INCLUDE "%MOD_FOLDER%/lib/a7#add_kit_ex.tpa"
 
 ACTION_DEFINE_ASSOCIATIVE_ARRAY 2DALIST// ASSOCIATIONS: column-label, is_transposed, mergetype, expected_columns
@@ -128,7 +129,7 @@ BEGIN
   OUTER_SET i = 0
   OUTER_WHILE (STRING_LENGTH "%opts%" > 0) BEGIN
     OUTER_SET i += 1
-    LAF DEBUGPRINT INT_VAR level = 3 STR_VAR func= EVAL "parse_opts: %opts%" END
+    LAF DEBUGPRINT INT_VAR SEVERITY = 3 STR_VAR MESSAGE = EVAL "parse_opts: %opts%" END
     OUTER_PATCH_SAVE EVAL "opt_%i%" "%opts%" BEGIN
       PATCH_IF NOT ("%opts%" STRING_CONTAINS_REGEXP ",.*$") BEGIN
         REPLACE_TEXTUALLY ",.*$" ""
@@ -377,55 +378,7 @@ BEGIN
 
 END 
 
-// returns SORTED array of abilities at a given level
-DEFINE_ACTION_FUNCTION get_clab_level
-  INT_VAR level = 1
-  STR_VAR clab  = "" pre = ""
-  RET numabil levels
-  RET_ARRAY abilities
-BEGIN
-  ACTION_DEFINE_ARRAY abilities BEGIN END
-  OUTER_SET numabil = 0
-  OUTER_SET levels = 0 - 1
-  OUTER_SPRINT abilstr ""
-  ACTION_IF (EVAL "%clab%" STRING_CONTAINS_REGEXP "\.2DA") BEGIN OUTER_SPRINT clab "%clab%.2DA" END
-  ACTION_IF FILE_EXISTS_IN_GAME EVAL "%clab%" BEGIN  
-    PRINT "file exists."
-    ACTION_IF level < 1 BEGIN FAIL ~level <%level%> is too low~ END
-    PRINT "level sufficient."
-    COPY_EXISTING "%clab%" ~override~
-      COUNT_2DA_COLS levels
-      READ_2DA_ENTRIES_NOW ~array~ levels
-      FOR (row = 0; row < ~%array%~; ++row) BEGIN
-        READ_2DA_ENTRY_FORMER ~array~ row level ~ability~
-        PATCH_IF NOT (~%ability%~ STRING_EQUAL ~****~) BEGIN
-          SPRINT $abilities("%numabil%") EVAL ~%pre%%ability%~
-          SPRINT abilstr EVAL "%abilstr% %pre%%ability%"
-          numabil += 1
-        END
-      END
-    BUT_ONLY
-    OUTER_PATCH "" BEGIN
-      SPRINT sort_array_name ~abilities~
-      SET sort_size    = numabil
-      SET sort_numeric = 0
-      SET sort_case    = 0
-      LPM SORT_ARRAY
-    END
-  END ELSE BEGIN PRINT ~NOTICE: COULD NOT FIND CLAB: %clab%. SKIPPING.~ END
-  OUTER_SET MYlevel = level
-  LAF DEBUGPRINT INT_VAR SEVERITY = 3 STR_VAR MESSAGE = EVAL 
-"get_clab_level: 
-  level: %MYlevel%
-  clab : %clab%
-  pre  : %pre%
-  numabil: %numabil%
-  levels: %levels%
-  abils: %abilstr%
-"
-  END
-  
-END
+
 
 DEFINE_PATCH_FUNCTION merge_clab_level
   INT_VAR level = 1
