@@ -869,15 +869,15 @@ BEGIN
       ACTION_IF (class_id > 0) BEGIN
         ACTION_MATCH class_id WITH
           1 19 BEGIN OUTER_TEXT_SPRINT clab ~CLABMA01~ END  // mage, sorcerer
-          2 BEGIN OUTER_TEXT_SPRINT clab ~CLABFI01~ END // fighter
-          3 BEGIN OUTER_TEXT_SPRINT clab ~CLABPR01~ END // cleric
-          4 BEGIN OUTER_TEXT_SPRINT clab ~CLABTH01~ END // thief
-          5 BEGIN OUTER_TEXT_SPRINT clab ~CLABBA01~ END // bard
-          6 BEGIN OUTER_TEXT_SPRINT clab ~CLABPA01~ END // paladin
-          11 BEGIN OUTER_TEXT_SPRINT clab ~CLABDR01~ END  // druid
-          12 BEGIN OUTER_TEXT_SPRINT clab ~CLABRN01~ END  // ranger
-          20 BEGIN OUTER_TEXT_SPRINT clab ~CLABMO01~ END  // monk
-          21 BEGIN OUTER_TEXT_SPRINT clab ~CLABSH01~ END  // shaman
+          2 BEGIN OUTER_TEXT_SPRINT    clab ~CLABFI01~ END // fighter
+          3 BEGIN OUTER_TEXT_SPRINT    clab ~CLABPR01~ END // cleric
+          4 BEGIN OUTER_TEXT_SPRINT    clab ~CLABTH01~ END // thief
+          5 BEGIN OUTER_TEXT_SPRINT    clab ~CLABBA01~ END // bard
+          6 BEGIN OUTER_TEXT_SPRINT    clab ~CLABPA01~ END // paladin
+          11 BEGIN OUTER_TEXT_SPRINT   clab ~CLABDR01~ END  // druid
+          12 BEGIN OUTER_TEXT_SPRINT   clab ~CLABRN01~ END  // ranger
+          20 BEGIN OUTER_TEXT_SPRINT   clab ~CLABMO01~ END  // monk
+          21 BEGIN OUTER_TEXT_SPRINT   clab ~CLABSH01~ END  // shaman
           DEFAULT
         END
       END
@@ -1419,6 +1419,8 @@ STR_VAR
   base_class  = ~~
 BEGIN
   OUTER_SET kit_id = IDS_OF_SYMBOL(~kit~ ~%kit_name%~)
+  LAF a7#add_kit_ex#print_message INT_VAR severity = 0 STR_VAR msg = EVAL ~QDifying %clab_res%...~ END
+
   ACTION_IF (NOT (~%kit_name%~ STR_EQ ~~ || ~%clab_res%~ STR_EQ ~~) &&
              kit_id > 0 &&
              ~%base_class%~ STRING_MATCHES_REGEXP ~[DFMPRT]~ = 0) BEGIN
@@ -1505,6 +1507,8 @@ BEGIN
               READ_2DA_ENTRY_FORMER rows row col ability
               TO_UPPER ~ability~
               PATCH_IF !(~%ability%~ STR_EQ ~%default%~) BEGIN
+                LPF a7#add_kit_ex#print_message INT_VAR severity = 0 STR_VAR msg = EVAL ~QDifying %ability% for %clab_res%...~ END
+
                 PATCH_IF (~%ability%~ STRING_MATCHES_REGEXP ~[DFMPRT]GA_.+~ = 0 ||
                           ~%ability%~ STRING_MATCHES_REGEXP ~[DFMPRT]AP_.+~ = 0) BEGIN
                   // override base class
@@ -1512,6 +1516,8 @@ BEGIN
                     READ_ASCII 0 class_token (1)
                     DELETE_BYTES 0 1
                   END
+                  LPF a7#add_kit_ex#print_message INT_VAR severity = 0 STR_VAR msg = EVAL ~ability %ability% doesn't use %base_class%, using %class_token%~ END
+
                 END
                 PATCH_IF (STRING_LENGTH ~%ability%~ > 3) BEGIN
                   LPF SUBSTRING INT_VAR start = 0 length = 3 STR_VAR string = EVAL ~%ability%~ RET abil_type = substring END
@@ -1822,6 +1828,7 @@ BEGIN
             path = EVAL ~%clab_path%~
           RET clab_res = clab
         END
+        
         ACTION_IF (~%clab_res%~ STR_EQ ~~) BEGIN
           LAF a7#add_kit_ex#print_message INT_VAR severity = 3 STR_VAR msg = EVAL ~No valid class ability table specified for kit [%kit_name%].~ END
         END
@@ -2165,7 +2172,7 @@ BEGIN
         ACTION_IF (NOT VARIABLE_IS_SET $clab_paths(~%base_class%~)) BEGIN
           OUTER_SET clab_paths += 1
         END
-        LAF a7#add_kit_ex#get_clab STR_VAR path = EVAL ~%clab_res%~ RET $clab_paths(~%base_class%~) = clab END
+        LAF a7#add_kit_ex#get_clab STR_VAR path = EVAL ~%clab_path%~ RET $clab_paths(~%base_class%~) = clab END
       END
 
       ACTION_IF (clab_paths > 0) BEGIN

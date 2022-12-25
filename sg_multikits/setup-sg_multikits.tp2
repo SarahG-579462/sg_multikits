@@ -43,6 +43,7 @@ INCLUDE "%MOD_FOLDER%/lib/sg#baseclab.tpa"
 LAF backup_2da END
 LAF REINITIALIZE_UNIQUE_KITNAMES END
 LAF clabify_backstab END
+LAF backup_baseclabs END // to avoid dealing with reading qd multi spells...
 LAF spellify_baseclabs END
 LAF fix_clastext END
 
@@ -77,42 +78,7 @@ OUTER_WHILE (createkit > 0) BEGIN
   OUTER_SET _get2da = 1
   OUTER_SPRINT nother "nother"
 END 
-//LAF backup_2da END
 
-/* OUTER_SPRINT backupdir_100 ~%MOD_FOLDER%/backup/100~
-OUTER_SPRINT backupdir_1000 ~%MOD_FOLDER%/backup/1000~
-OUTER_SET INSTALL_COUNT = 1
-OUTER_SPRINT newdir ~%backupdir_1000%/%INSTALL_COUNT%~
-
-OUTER_WHILE (DIRECTORY_EXISTS ~%newdir%~) BEGIN
-  OUTER_SET INSTALL_COUNT += 1
-  OUTER_SPRINT newdir ~%backupdir_1000%/%INSTALL_COUNT%~
-END
-ACTION_IF ! (DIRECTORY_EXISTS ~%newdir%~) BEGIN
-  MKDIR ~%newdir%~
-END
-COPY + ~%backupdir_1000%~ ~%newdir%~
-OUTER_SPRINT backupfile_100 ~\([A-Z]*\.100\(\.[A-Z]\)?\)~
-OUTER_SPRINT backupfile_1000 ~\([A-Z]*\.100\(\.[A-Z]\)?\)~
-OUTER_SPRINT mappings_1000 ~%newdir%/MAPPINGS.1000~
-ACTION_IF (FILE_EXISTS ~%mappings_1000%~) BEGIN
-  PRINT "RE-ALIGNING %mappings_1000%..."
-  COPY + ~%mappings_1000%~ ~%newdir%~
-    REPLACE_TEXTUALLY CASE_INSENSITIVE ~TB#"SPACE"%backupdir_1000%~ ~TB#"SPACE"%newdir%~
-  
-END ELSE BEGIN FAIL "COULD NOT FIND %mappings_1000%..." END
-COPY + ~%backupdir_100%~ ~%backupdir_100%~
-  
-  PATCH_IF NOT (~%SOURCE_FILE%~ STRING_MATCHES_REGEXP ~%backupfile_100%~) BEGIN
-    INNER_PATCH_SAVE equiv_1000 ~%SOURCE_FILE%~ BEGIN
-      REPLACE_TEXTUALLY EXACT_MATCH ".100" ".1000"
-    END
-    PATCH_PRINT "SOURCE_FILE %SOURCE_FILE% IS A BACKUP FILE... APPENDING WITH %newdir%/%equiv_1000%"
-    PATCH_IF (FILE_EXISTS ~%newdir%/%equiv_1000%~) BEGIN
-      INSERT_FILE 0x0 ~%newdir%/%equiv_1000%~
-    END
-  END
-   */
   
 BEGIN @2000 
 DESIGNATED 2000 // Dynamic Kit Creation

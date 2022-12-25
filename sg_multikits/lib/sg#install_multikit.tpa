@@ -277,15 +277,15 @@ BEGIN
   OUTER_FOR (i = 1; i <= STRING_LENGTH "%multiprefix%"; i += 1) BEGIN
     ACTION_MATCH EVAL "%pre_%i%%"
       WITH
-        ~D~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABDR01~ END
-        ~F~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABFI01~ END
-        ~M~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABMA01~ END
+        ~D~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABDR01_PREQD~ END
+        ~F~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABFI01_PREQD~ END
+        ~M~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABMA01_PREQD~ END
         ~C~ BEGIN 
-          OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABPR01~ 
+          OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABPR01_PREQD~ 
           OUTER_SPRINT EVAL "pre_%i%" "P" 
           END // Cleric is weird...
-        ~R~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABRN01~ END
-        ~T~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABTH01~ END
+        ~R~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABRN01_PREQD~ END
+        ~T~ BEGIN OUTER_SPRINT EVAL "clabcls%i%" EVAL ~CLABTH01_PREQD~ END
       DEFAULT
         FAIL ~UNKNOWN MULTICLASS PREFIX~
     END
