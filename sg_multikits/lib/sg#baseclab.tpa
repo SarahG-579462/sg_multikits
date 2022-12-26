@@ -84,7 +84,7 @@ BEGIN
     
     LAF create_qdmc_eff END
     COPY_EXISTING ~%base_clab%.2DA~ ~override~
-      levels = 41
+      levels = 1
       class_id = IDS_OF_SYMBOL(~class~ ~%class_name%~)
 
       FOR (level = 1; level < levels; ++level) BEGIN

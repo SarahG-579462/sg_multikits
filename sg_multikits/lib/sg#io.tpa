@@ -96,15 +96,15 @@ DEFINE_ACTION_FUNCTION 2da_to_asarray
     COPY_EXISTING "%filename%" "%fileto%"
       LPF a7#add_kit_ex#normalize_table END // fix bugs with mods playing with columns...
       COUNT_2DA_COLS ncols
-      
+      COUNT_2DA_ROWS ncols nrows
       LPF read_2da_header_now RET ncolscheck = ncols RET_ARRAY "cols" = output  END
       
       
       READ_2DA_ENTRIES_NOW "outtable" "%ncols%"
-      SET nrows = "%outtable%"
       // dumb but weidu is weidu I guess
       FOR (row=0; row < "%nrows%"; row += 1) BEGIN
         FOR (col=0; col < "%ncols%"; col += 1) BEGIN
+          //PATCH_PRINT "%filename% %fileto% %nrows% %ncols% %row% %col%"
           READ_2DA_ENTRY_FORMER "outtable" "%row%" "%col%" tmp
           SPRINT $outtable2("%row%" "%col%") "%tmp%"
         END

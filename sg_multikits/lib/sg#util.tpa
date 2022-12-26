@@ -206,24 +206,28 @@ BEGIN
 	COUNT_2DA_ROWS cols rows							//count rows
 	READ_2DA_ENTRIES_NOW array cols						//store entries in array
   added = 0
-	FOR (row = 0; row < array; ++row) BEGIN				//loop through rows
-		READ_2DA_ENTRY_FORMER array row level value		//entry value
-    
-		PATCH_IF (~%value%~ STRING_EQUAL ~****~) BEGIN	//no value
-			SET_2DA_ENTRY row level cols ~%ability%~	//add ability
-      added = 1
-			row = array//~break
-		END
-	END
-  PATCH_IF added == 0 BEGIN
-    SPRINT newrow "ABILITY    "
-    FOR (col = 1; col < cols; ++col) BEGIN
-      SPRINT newrow "%newrow%****       "
+  PATCH_IF level >= cols BEGIN
+    PATCH_WARN "WARNING: Cannot add ability %ability% to %SOURCE_RES%, since level %level% >= max levels %cols%, skipping."
+  END ELSE BEGIN
+    FOR (row = 0; row < array; ++row) BEGIN				//loop through rows
+      READ_2DA_ENTRY_FORMER array row level value		//entry value
+      
+      PATCH_IF (~%value%~ STRING_EQUAL ~****~) BEGIN	//no value
+        SET_2DA_ENTRY row level cols ~%ability%~	//add ability
+        added = 1
+        row = array//~break
+      END
     END
-    INSERT_2DA_ROW row cols "%newrow%"
-    SET_2DA_ENTRY row level cols ~%ability%~
+    PATCH_IF added == 0 BEGIN
+      SPRINT newrow "ABILITY    "
+      FOR (col = 1; col < cols; ++col) BEGIN
+        SPRINT newrow "%newrow%****       "
+      END
+      INSERT_2DA_ROW row cols "%newrow%"
+      SET_2DA_ENTRY row level cols ~%ability%~
+    END
   END
-	PRETTY_PRINT_2DA //formatting
+  PRETTY_PRINT_2DA //formatting
 END
 
 DEFINE_PATCH_FUNCTION remove_abilities_from_clab 
@@ -245,17 +249,21 @@ BEGIN
 	COUNT_2DA_ROWS levels rows							//count rows
 	READ_2DA_ENTRIES_NOW array levels						//store entries in array
   added = 0
-	FOR (row = 0; row < array; ++row) BEGIN				//loop through rows
-		READ_2DA_ENTRY_FORMER array row level value		//entry value
-		PATCH_IF NOT (~%value%~ STRING_EQUAL ~****~) BEGIN	//has value
-      PATCH_IF (~%except%~ STR_EQ ~~) OR (/* value does not match regexp except*/ ~%value%~ STRING_CONTAINS_REGEXP ~%except%~) BEGIN
-        LPF DEBUGPRINT INT_VAR SEVERITY = 1 STR_VAR MESSAGE = EVAL "deleting ability %value% from clab..." END
-        SPRINT $abilities(EVAL ~%ab_ind_curr%~) ~%value%~
-        SET_2DA_ENTRY row level levels ~****~	//add ability
-        ab_ind_curr += 1
+  PATCH_IF level >= cols BEGIN
+    PATCH_WARN "WARNING: Cannot remove abilities from %SOURCE_RES%, since level %level% >= max levels %cols%, skipping."
+  END ELSE BEGIN
+    FOR (row = 0; row < array; ++row) BEGIN				//loop through rows
+      READ_2DA_ENTRY_FORMER array row level value		//entry value
+      PATCH_IF NOT (~%value%~ STRING_EQUAL ~****~) BEGIN	//has value
+        PATCH_IF (~%except%~ STR_EQ ~~) OR (/* value does not match regexp except*/ ~%value%~ STRING_CONTAINS_REGEXP ~%except%~) BEGIN
+          LPF DEBUGPRINT INT_VAR SEVERITY = 1 STR_VAR MESSAGE = EVAL "deleting ability %value% from clab..." END
+          SPRINT $abilities(EVAL ~%ab_ind_curr%~) ~%value%~
+          SET_2DA_ENTRY row level levels ~****~	//add ability
+          ab_ind_curr += 1
+        END
       END
-		END
-	END
+    END
+  END
   PRETTY_PRINT_2DA
   num_abil = ab_ind_curr
 END

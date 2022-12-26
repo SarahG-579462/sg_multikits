@@ -1,12 +1,12 @@
 //1. TP2 FILE//
 BACKUP ~sg_multikits/backup~ 
 AUTHOR ~SadieGamer (SG),  sg2475962@gmail.com~ 
-VERSION ~v0.18~
+VERSION ~v0.19~
 ALWAYS
   COPY ~%MOD_FOLDER%/data~ ~override~
   INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"
   
-  OUTER_SET DEBUG = 1
+  OUTER_SET DEBUG = 0
   LAM GET_2DAS
   ACTION_IF IS_AN_INT "%_N_PROMPT_TOTAL%" BEGIN
     LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END
@@ -40,12 +40,12 @@ OUTER_SPRINT info @101
 PRINT "%info%"
 INCLUDE "%MOD_FOLDER%/lib/sg#backstab.tpa"
 INCLUDE "%MOD_FOLDER%/lib/sg#baseclab.tpa"
-LAF backup_2da END
+//LAF backup_2da END
 LAF REINITIALIZE_UNIQUE_KITNAMES END
 LAF clabify_backstab END
 LAF backup_baseclabs END // to avoid dealing with reading qd multi spells...
 LAF spellify_baseclabs END
-LAF fix_clastext END
+//LAF fix_clastext END
 
 BEGIN @200 
 DESIGNATED 200 // PSEUDO-DRUID

@@ -70,5 +70,6 @@ BEGIN
     FOR (row = 1; row < rows; ++ row) BEGIN
       REMOVE_2DA_ROW 1 cols
     END
+    PRETTY_PRINT_2DA
   BUT_ONLY
 END 
