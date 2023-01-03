@@ -1,0 +1,72 @@
+// JACK OF TRADES
+
+// copy blank 2da:
+COPY ~%MOD_FOLDER%/DATA/BLANKCLAB.2DA~  ~override/SGJACK.2DA~
+  PATCH_IF (GAME_IS ~iwdee~) BEGIN 
+    LPF d2_kit_ability_adder INT_VAR passive=1 STR_VAR resource=~#BARD-1~ END
+  END
+  ELSE BEGIN 
+    LPF d2_kit_ability_adder INT_VAR passive=1 STR_VAR resource=~FJBARD~ END
+  END
+
+  LAF ADD_KIT_EX
+    INT_VAR
+      kit_class = 5
+      mixed = RESOLVE_STR_REF ~Jack of Trades~
+      lower = RESOLVE_STR_REF ~jack of trades~
+      help =  RESOLVE_STR_REF 
+~JACK OF ALL TRADES: 
+"A jack of all trades, master of none, but oftentimes better than master of one."
+Even moreso than a classically trained bard, the Jack of All Trades forgoes specializing in the arts, and instead focusses outwards into <PRO_HISHER> companions skills and talents. With appropriate wit, <PRO_HESHE> is capable of mimicking many of the abilities of other classes and specialities.
+
+CLASS FEATURES:
+
+Advantages:
+- May use all thieving skills available to a thief.
+- Gains 10 thieving points per level to distribute at their convenience.
+
+- The Jack of All Trades' bard song may be used to Turn Undead (starts at Turn Undead level 1, and improves with Familiarize).
+- The Jack of All Trades' bard song may be used to summon creatures to <PRO_HISHER> aid in combat. Starts at 5%, and improves with Specialize. These spirits disappear 1 round after the bard stops singing.
+- Gains the use of the Familiarize special ability. Gains additional uses every level.
+
+FAMILIARIZE: With their talent at adaptation, the Jack of All Trades forgoes normal level progression and instead chooses to familiarize themselves in the abilities of other classes. The Jack of All Trades may choose one of the following permanent bonuses:
+ - +1 THAC0,
+ - +15 Skill points,
+ - Learn 1 cleric or druid spell,
+ - +1 caster level,
+ - +1 Turn Undead level,
+ - +2% magic resistance,
+ - +5% elemental resistance,
+ - +1 movement speed,
+ - +3% chance per round of summoning spirit,
+ - +1 proficiency point.
+ 
+- Level 5: Gains the use of the Specialize special ability. Gains additional uses every 5 levels.
+
+SPECIALIZE: By careful study of their enemies and companions, the Jack of All Trades gains the ability to focus further into one of their areas of study.
+ - +1 backstab modifier.
+ - +1/2 attack per round.
+ - Improve summon level for spirit summoning.
+ - Improve bard song, +1 THAC0, +5% Thief skills, +1% magic resistance.
+ - Improve fists: +1d4 damage, fists strike as +1 weapon enchantment.
+ - Cast 1 more spell per level.
+
+- Gains the use of the Mimicry special ability. Gains additional use at level 5, and every fifth level thereafter.
+
+MIMICRY: Whether through careful examination, learning through use, or natural talent, Jacks of All Trades are able to imitate the skills of almost any profession and adapt them as their own. When used, this ability may be permanently exchanged for one ability of another kit.
+
+Disadvantages:
+- Lore improves at half the rate of a normal bard.
+- Bard song does not improve with level, unless chosen as a specialization.
+- THAC0 does not naturally improve.
+- Spell progression is one slower than a normal bard.
+- Caster level does not naturally improve.
+~
+    STR_VAR
+      kit_name = ~SGJACK~
+      clab_path = ~%kitid%b~
+    RET
+      KIT_ID = kid_id
+  END 
+
+INCLUDE ~skills-and-abilities/components/class_skills/set_bard_skills.tpa~

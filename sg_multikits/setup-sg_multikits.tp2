@@ -33,6 +33,12 @@ BEGIN "TEST COMPONENT" DESIGNATED 1
   LAF prompt_yesno STR_VAR prompt = "testing [y/n]" RET output END
   LAF rglobal STR_VAR name = "_N_PROMPT_TOTAL" RET _N_PROMPT_TOTAL = value END PRINT "_N_PROMPT_TOTAL: %_N_PROMPT_TOTAL%"
  */
+BEGIN @90 DESIGNATED 90 // JACK OF TRADES
+REQUIRE_PREDICATE (GAME_IS ~bgee bg2ee eet iwdee~) @3000
+REQUIRE_PREDICATE FILE_EXISTS_IN_GAME ~EEex_Actionbar.lua~ @3002 //EEX required!
+
+INCLUDE ~%MOD_FOLDER%/components/jack_of_trades.tpa~
+
 BEGIN @100 DESIGNATED 100 // Build (allows to uninstall no_log_record)
 REQUIRE_PREDICATE GAME_IS ~bgee bg2ee iwdee eet~ @10001
 // this component standardizes backstabs. It also is used so we can uninstall multikits.
