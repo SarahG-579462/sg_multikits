@@ -225,6 +225,7 @@ BEGIN
       END
       INSERT_2DA_ROW row cols "%newrow%"
       SET_2DA_ENTRY row level cols ~%ability%~
+      added = 1
     END
   END
   PRETTY_PRINT_2DA //formatting
@@ -248,14 +249,13 @@ BEGIN
 	COUNT_2DA_COLS levels									//count columns
 	COUNT_2DA_ROWS levels rows							//count rows
 	READ_2DA_ENTRIES_NOW array levels						//store entries in array
-  added = 0
-  PATCH_IF level >= cols BEGIN
-    PATCH_WARN "WARNING: Cannot remove abilities from %SOURCE_RES%, since level %level% >= max levels %cols%, skipping."
+  PATCH_IF level >= levels BEGIN
+    PATCH_WARN "WARNING: Cannot remove abilities from %SOURCE_RES%, since level %level% >= max levels %levels%, skipping."
   END ELSE BEGIN
     FOR (row = 0; row < array; ++row) BEGIN				//loop through rows
       READ_2DA_ENTRY_FORMER array row level value		//entry value
-      PATCH_IF NOT (~%value%~ STRING_EQUAL ~****~) BEGIN	//has value
-        PATCH_IF (~%except%~ STR_EQ ~~) OR (/* value does not match regexp except*/ ~%value%~ STRING_CONTAINS_REGEXP ~%except%~) BEGIN
+      PATCH_IF NOT (EVAL ~%value%~ STRING_EQUAL ~****~) BEGIN	//has value        
+        PATCH_IF (EVAL ~%except%~ STRING_EQUAL ~~) OR (/* value does not match regexp except*/EVAL ~%value%~ STRING_CONTAINS_REGEXP EVAL ~%except%~) BEGIN
           LPF DEBUGPRINT INT_VAR SEVERITY = 1 STR_VAR MESSAGE = EVAL "deleting ability %value% from clab..." END
           SPRINT $abilities(EVAL ~%ab_ind_curr%~) ~%value%~
           SET_2DA_ENTRY row level levels ~****~	//add ability

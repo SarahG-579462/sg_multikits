@@ -602,8 +602,10 @@ BEGIN
       END
       SPRINT mergestr ""
       PHP_EACH "abmerge" AS "id" => "ability" BEGIN
-        LPF bl_add_ability_to_clab INT_VAR level STR_VAR ability END
-        SPRINT mergestr EVAL "%mergestr% %id% => %ability%"
+        PATCH_IF ~%ability%~ STRING_CONTAINS_REGEXP ~QD_MC~ BEGIN // SKIP QD_MC PREVIOUS ENTRIES
+          LPF bl_add_ability_to_clab INT_VAR level STR_VAR ability END
+          SPRINT mergestr EVAL "%mergestr% %id% => %ability%"
+        END
       END
       INNER_ACTION BEGIN LAF DEBUGPRINT INT_VAR SEVERITY = 2 STR_VAR MESSAGE = EVAL "merge_clab: level = %level%, merged_abils = %mergestr%" END END
     END

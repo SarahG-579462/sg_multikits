@@ -1406,7 +1406,7 @@ BEGIN
     // make sure base CLAB table exists
     LAF a7#add_kit_ex#ensure_clab_table STR_VAR resref = EVAL ~%clab_resref%~ END
 
-    ACTION_IF (NOT FILE_CONTAINS_EVALUATED(~%clab_resref%.2DA~ ~^[ %TAB%]*QD_MULTI[ %TAB%]~)) BEGIN
+    ACTION_IF (NOT FILE_CONTAINS_EVALUATED(~%clab_resref%.2DA~ ~AP_QD_MC~)) BEGIN
       // padding CLAB table
       LAF a7#add_kit_ex#pad_clab_table STR_VAR resref = EVAL ~%clab_resref%~ END
 

@@ -22,6 +22,7 @@ BEGIN
   
   OUTER_SET thiefrow = $backstab_rows("THIEF")
   ACTION_PHP_EACH ~backstab_rows~ AS ~class~ => ~row~ BEGIN
+    PRINT ~Clabifying backstab for %class%~
     ACTION_IF NOT (~%class%~ STRING_EQUAL "THIEF") BEGIN
       OUTER_SPRINT classclab $kitlist(EVAL "%kitlist_rows_%class%%" EVAL "%kitlist_cols_ABILITIES%")
       OUTER_SET classtype = $kitlist(EVAL "%kitlist_rows_%class%%" EVAL "%kitlist_cols_CLASS%")
@@ -30,21 +31,24 @@ BEGIN
         OUTER_SET currbackstabmod = 0
         ACTION_PHP_EACH ~backstab_cols~ AS ~level~ => ~col~ BEGIN
           OUTER_SET currdiff_thief = $backstab(~%row%~ ~%col%~) - $backstab(~%thiefrow%~ ~%col%~)
-          OUTER_WHILE (currdiff_thief > 0) AND (currdiff_thief != currbackstabmod) BEGIN
+          OUTER_WHILE (currdiff_thief > 0) AND (currdiff_thief > currbackstabmod) BEGIN
           // class has higher backstab, so add some, until the current modifier is correct.
+            PRINT ~level: %level%, %class% - THIEF backstab... %currdiff_thief%, adding backstab... %currbackstabmod% ~
             OUTER_SET currbackstabmod   += 1
             COPY_EXISTING ~%classclab%.2da~ ~override~
               level = (level == 0) ? 1 : level // no level 0 clab.
               LPF bl_add_ability_to_clab INT_VAR level = ~%level%~ STR_VAR ability = ~AP_SPCL332~ END//+1 BS mod
-            BUT_ONLY
+            BUT_ONLY IF_EXISTS
           END
-          OUTER_WHILE (currdiff_thief < 0) AND (currdiff_thief != currbackstabmod) BEGIN
+          OUTER_WHILE (currdiff_thief < 0) AND (currdiff_thief < currbackstabmod) BEGIN
           // class has lower backstab, so remove some, until the current modifier is correct.
+            PRINT ~level: %level%, %class% - THIEF backstab... %currdiff_thief%, removing backstab... %currbackstabmod% ~
+
             OUTER_SET currbackstabmod   -= 1
             COPY_EXISTING ~%classclab%.2da~ ~override~
               level = (level == 0) ? 1 : level // no level 0 clab.
               LPF bl_add_ability_to_clab INT_VAR level = ~%level%~ STR_VAR ability = ~AP_BLSPBKM~ END//-1 BS mod
-            BUT_ONLY
+            BUT_ONLY IF_EXISTS
           END
         END
       END ELSE BEGIN // otherwise, if not a thief, add backstabs, so multi-stalkers work, e.g.
@@ -57,7 +61,7 @@ BEGIN
             COPY_EXISTING ~%classclab%.2da~ ~override~
               level = (level == 0) ? 1 : level // no level 0 clab.
               LPF bl_add_ability_to_clab INT_VAR level = ~%level%~ STR_VAR ability = ~AP_SPCL332~ END//+1 BS mod
-            BUT_ONLY
+            BUT_ONLY IF_EXISTS
           END
         END
       END

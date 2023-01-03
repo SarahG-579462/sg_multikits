@@ -1,7 +1,7 @@
 //1. TP2 FILE//
 BACKUP ~sg_multikits/backup~ 
 AUTHOR ~SadieGamer (SG),  sg2475962@gmail.com~ 
-VERSION ~v0.19~
+VERSION ~v0.20~
 ALWAYS
   COPY ~%MOD_FOLDER%/data~ ~override~
   INCLUDE "%MOD_FOLDER%/lib/sg#install_multikit.tpa"

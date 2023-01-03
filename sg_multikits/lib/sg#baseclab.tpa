@@ -84,7 +84,7 @@ BEGIN
     
     LAF create_qdmc_eff END
     COPY_EXISTING ~%base_clab%.2DA~ ~override~
-      levels = 1
+      levels = 2
       class_id = IDS_OF_SYMBOL(~class~ ~%class_name%~)
 
       FOR (level = 1; level < levels; ++level) BEGIN
@@ -127,6 +127,17 @@ BEGIN
                     OUTER_TEXT_SPRINT qdmc_spl_resref ~QD_MC%base_class%%level%~
                   END
                   COPY_EXISTING ~%qdmc_spl_resref%.SPL~ ~override~
+                    LPF CLONE_EFFECT
+                      INT_VAR 
+                        verbose = 1
+                        silent = 1
+                        match_opcode = 177 match_target = 1 match_timing = 9 match_resist_dispel = 0 match_power = 0 
+                        match_parameter2 = 9
+                      STR_VAR 
+                      resource = EVAL ~%abil_new_name%~
+                      resist_dispel = 2
+                    END// ensure old multimods work as intended. change resist_dispel to avoid stacking effects infinitely...
+                      
                     LPF ADD_SPELL_EFFECT
                       INT_VAR insert_point = 0 opcode = 177 target = 1 timing = 9 resist_dispel = 0 power = 0 parameter1 = EVAL ~%class_id%~ parameter2 = 5// add only for single class (no multi)
                       STR_VAR resource = EVAL ~%abil_new_name%~
